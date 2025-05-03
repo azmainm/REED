@@ -1,0 +1,103 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { useTheme } from "./theme-provider";
+import { useAuth } from "./auth-context";
+import { Moon, Sun, Menu, ChevronDown, User, Settings, LogOut } from "lucide-react";
+
+export default function NavbarAuth({ toggleSidebar }) {
+  const { theme, setTheme } = useTheme();
+  const { user, logOut } = useAuth();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const handleNavigation = () => {
+    // Close any open menus when navigating
+    setIsDropdownOpen(false);
+    if (toggleSidebar) {
+      // If on mobile, also close the sidebar
+      toggleSidebar(false);
+    }
+  };
+
+  return (
+    <header className="fixed top-0 z-40 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container mx-auto flex h-16 max-w-screen-xl items-center justify-between px-4 md:px-6">
+        {/* Menu Button & Logo */}
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => toggleSidebar()}
+            className="md:hidden flex items-center justify-center rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
+            aria-label="Toggle sidebar"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          
+          <Link href="/dashboard" className="flex items-center space-x-2" onClick={handleNavigation}>
+            <span className="text-xl font-bold gradient-text">Reed</span>
+          </Link>
+        </div>
+
+        {/* Right Side */}
+        <div className="flex items-center gap-4">
+          {/* Theme Toggle */}
+          <button
+            onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+            className="rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
+            aria-label="Toggle theme"
+          >
+            {theme === "light" ? (
+              <Moon className="h-5 w-5" />
+            ) : (
+              <Sun className="h-5 w-5" />
+            )}
+          </button>
+          
+          {/* User Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="flex items-center gap-2 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
+                <User className="h-4 w-4 text-primary" />
+              </div>
+              <ChevronDown className="h-4 w-4" />
+            </button>
+            
+            {isDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-56 rounded-md border border-border bg-card shadow-lg">
+                <div className="p-2">
+                  <div className="px-3 py-2 text-sm font-medium">
+                    {user?.email || "user@example.com"}
+                  </div>
+                  <div className="h-px bg-border my-1" />
+                  <Link
+                    href="/dashboard/profile"
+                    className="flex items-center rounded-md px-3 py-2 text-sm hover:bg-accent"
+                    onClick={handleNavigation}
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                  </Link>
+                  
+                  <div className="h-px bg-border my-1" />
+                  <button
+                    className="flex w-full items-center rounded-md px-3 py-2 text-sm hover:bg-accent"
+                    onClick={() => {
+                      setIsDropdownOpen(false);
+                      logOut();
+                    }}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+} 
