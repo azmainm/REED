@@ -11,7 +11,8 @@ import {
   BookText, 
   BookCopy, 
   RefreshCw, 
-  Tag
+  Tag,
+  X
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -44,6 +45,7 @@ const categories = ["Philosophy", "Ethics", "Logic", "Politics", "Communication"
 export default function CreatePage() {
   const router = useRouter();
   const fileInputRef = useRef(null);
+  const coverImageInputRef = useRef(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [fileName, setFileName] = useState("");
   const [fileUploaded, setFileUploaded] = useState(false);
@@ -55,8 +57,10 @@ export default function CreatePage() {
   const [metadata, setMetadata] = useState({
     title: "The Socratic Method",
     description: "An interactive dialogue on critical thinking",
-    category: "Philosophy"
+    category: "Philosophy",
+    coverImage: null
   });
+  const [coverImagePreview, setCoverImagePreview] = useState(null);
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -92,7 +96,7 @@ export default function CreatePage() {
     // Simulate API delay
     setTimeout(() => {
       setIsRegenerating(false);
-      showToastMessage("Story regenerated");
+      showToastMessage("Reed regenerated");
     }, 2000);
   };
 
@@ -113,6 +117,16 @@ export default function CreatePage() {
     }, 2000);
   };
 
+  const handleCancel = () => {
+    // Show toast message
+    showToastMessage("Creation cancelled");
+    
+    // Redirect to dashboard
+    setTimeout(() => {
+      router.push("/dashboard");
+    }, 1000);
+  };
+
   const nextStep = () => {
     setCurrentStep(currentStep + 1);
   };
@@ -125,6 +139,47 @@ export default function CreatePage() {
     setToastMessage(message);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
+  };
+
+  const handleCoverImageUpload = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      // Create a preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImagePreview(reader.result);
+        setMetadata({
+          ...metadata,
+          coverImage: file
+        });
+        showToastMessage("Cover image uploaded");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCoverImageDrop = (e) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      
+      // Create a preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImagePreview(reader.result);
+        setMetadata({
+          ...metadata,
+          coverImage: file
+        });
+        showToastMessage("Cover image uploaded");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCoverImageDragOver = (e) => {
+    e.preventDefault();
   };
 
   const isNextDisabled = () => {
@@ -145,7 +200,7 @@ export default function CreatePage() {
       {/* Step Indicator */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Create Interactive Story</h1>
+          <h1 className="text-2xl font-bold">Create Interactive Reed</h1>
           <div className="text-sm text-muted-foreground">
             Step {currentStep} of 4
           </div>
@@ -184,11 +239,11 @@ export default function CreatePage() {
           <div>
             <h2 className="text-xl font-bold mb-4">Upload Document</h2>
             <p className="text-muted-foreground mb-6">
-              Upload a PDF or text file to convert into an interactive story.
+              Upload a PDF or text file to convert into an interactive reed.
             </p>
             
             <div 
-              className="border-2 border-dashed border-border rounded-lg p-8 text-center mb-6 cursor-pointer hover:bg-accent/20 transition-colors"
+              className="border-2 border-dashed border-border rounded-lg p-8 text-center mb-6 cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
               onClick={() => fileInputRef.current?.click()}
               onDrop={handleDrop}
               onDragOver={handleDragOver}
@@ -229,7 +284,7 @@ export default function CreatePage() {
           <div>
             <h2 className="text-xl font-bold mb-4">Select Style</h2>
             <p className="text-muted-foreground mb-6">
-              Choose a style for your interactive story.
+              Choose a style for your interactive reed.
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -293,9 +348,9 @@ export default function CreatePage() {
         {/* Step 3: Story Review */}
         {currentStep === 3 && (
           <div>
-            <h2 className="text-xl font-bold mb-4">Review & Edit Story</h2>
+            <h2 className="text-xl font-bold mb-4">Review & Edit Reed</h2>
             <p className="text-muted-foreground mb-6">
-              Review the generated story and make any necessary edits.
+              Review the generated reed and make any necessary edits.
             </p>
             
             <div className="relative mb-4">
@@ -309,7 +364,7 @@ export default function CreatePage() {
                 <div className="absolute inset-0 bg-card/80 backdrop-blur-sm flex items-center justify-center">
                   <div className="flex flex-col items-center gap-2">
                     <RefreshCw className="h-10 w-10 text-primary animate-spin" />
-                    <p className="font-medium">Regenerating story...</p>
+                    <p className="font-medium">Regenerating reed...</p>
                   </div>
                 </div>
               )}
@@ -331,10 +386,53 @@ export default function CreatePage() {
           <div>
             <h2 className="text-xl font-bold mb-4">Add Metadata & Publish</h2>
             <p className="text-muted-foreground mb-6">
-              Add final details to your story before publishing.
+              Add final details to your reed before publishing.
             </p>
             
             <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Cover Image
+                </label>
+                <div 
+                  className="border-2 border-dashed border-border rounded-lg p-4 text-center mb-2 cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors h-40 flex items-center justify-center"
+                  onClick={() => coverImageInputRef.current?.click()}
+                  onDrop={handleCoverImageDrop}
+                  onDragOver={handleCoverImageDragOver}
+                >
+                  <input
+                    type="file"
+                    ref={coverImageInputRef}
+                    onChange={handleCoverImageUpload}
+                    className="hidden"
+                    accept="image/*"
+                  />
+                  
+                  {coverImagePreview ? (
+                    <div className="w-full h-full relative">
+                      <img 
+                        src={coverImagePreview} 
+                        alt="Cover" 
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 bg-black/30 text-white rounded-lg transition-opacity">
+                        <p>Click to change</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Upload className="h-6 w-6 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        Drag and drop or click to upload a cover image
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Recommended: 1200 x 630 pixels (16:9 ratio)
+                </p>
+              </div>
+              
               <div>
                 <label htmlFor="title" className="block text-sm font-medium mb-1">
                   Title
@@ -403,29 +501,39 @@ export default function CreatePage() {
           <div />
         )}
         
-        {currentStep < 4 ? (
+        <div className="flex space-x-3">
           <button
-            onClick={nextStep}
-            disabled={isNextDisabled()}
-            className={`flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors ${
-              isNextDisabled() ? "opacity-50 cursor-not-allowed" : "hover:bg-primary/90 hover:shadow-md"
-            }`}
+            onClick={handleCancel}
+            className="flex items-center rounded-lg bg-gradient-to-r from-red-700 to-red-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 hover:shadow-md"
           >
-            Next
-            <ArrowRight className="ml-2 h-4 w-4" />
+            <X className="mr-2 h-4 w-4" />
+            Cancel
           </button>
-        ) : (
-          <button
-            onClick={handlePublish}
-            disabled={isNextDisabled()}
-            className={`flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors ${
-              isNextDisabled() ? "opacity-50 cursor-not-allowed" : "hover:bg-primary/90 hover:shadow-md"
-            }`}
-          >
-            Publish
-            <BookCopy className="ml-2 h-4 w-4" />
-          </button>
-        )}
+          
+          {currentStep < 4 ? (
+            <button
+              onClick={nextStep}
+              disabled={isNextDisabled()}
+              className={`flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors ${
+                isNextDisabled() ? "opacity-50 cursor-not-allowed" : "hover:bg-primary/90 hover:shadow-md"
+              }`}
+            >
+              Next
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </button>
+          ) : (
+            <button
+              onClick={handlePublish}
+              disabled={isNextDisabled()}
+              className={`flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors ${
+                isNextDisabled() ? "opacity-50 cursor-not-allowed" : "hover:bg-primary/90 hover:shadow-md"
+              }`}
+            >
+              Publish
+              <BookCopy className="ml-2 h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
       
       {/* Toast Notification */}

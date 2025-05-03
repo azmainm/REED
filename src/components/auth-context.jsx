@@ -6,8 +6,9 @@ import {
   onAuthStateChanged,
   signOut
 } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { auth, googleProvider, firestore } from "@/lib/firebase";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { auth, googleProvider, firestore, storage } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 
 const AuthContext = createContext({});
@@ -22,7 +23,7 @@ export function AuthProvider({ children }) {
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
       if (authUser) {
         // User is signed in
-        const userDocRef = doc(firestore, "users", authUser.uid);
+        const userDocRef = doc(firestore, "users", authUser.email);
         const userDoc = await getDoc(userDocRef);
         
         if (userDoc.exists()) {
@@ -30,8 +31,8 @@ export function AuthProvider({ children }) {
           setUser({
             uid: authUser.uid,
             email: authUser.email,
-            displayName: authUser.displayName,
-            photoURL: authUser.photoURL,
+            displayName: authUser.displayName || userDoc.data().name,
+            photoURL: authUser.photoURL || userDoc.data().profilePicture,
             ...userDoc.data()
           });
         } else {
@@ -39,8 +40,10 @@ export function AuthProvider({ children }) {
           const newUserData = {
             uid: authUser.uid,
             email: authUser.email,
-            displayName: authUser.displayName,
-            photoURL: authUser.photoURL,
+            name: authUser.displayName || "",
+            profilePicture: authUser.photoURL || "",
+            dob: "",
+            avatar_id: null,
             createdAt: new Date(),
             xp: 0,
           };
@@ -86,11 +89,68 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Update user profile
+  const updateProfile = async (userData) => {
+    if (!user) return { success: false, error: "No user logged in" };
+    
+    try {
+      const userDocRef = doc(firestore, "users", user.email);
+      await updateDoc(userDocRef, userData);
+      
+      setUser({ ...user, ...userData });
+      return { success: true };
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      return { success: false, error };
+    }
+  };
+
+  // Upload profile picture
+  const uploadProfilePicture = async (file) => {
+    if (!user) return { success: false, error: "No user logged in" };
+    if (!file) return { success: false, error: "No file provided" };
+    
+    try {
+      const fileRef = ref(storage, `profile_pictures/${user.uid}`);
+      await uploadBytes(fileRef, file);
+      const downloadURL = await getDownloadURL(fileRef);
+      
+      // Update the profile with the new image URL
+      const userDocRef = doc(firestore, "users", user.email);
+      await updateDoc(userDocRef, { profilePicture: downloadURL });
+      
+      setUser({ ...user, profilePicture: downloadURL });
+      return { success: true, downloadURL };
+    } catch (error) {
+      console.error("Error uploading profile picture:", error);
+      return { success: false, error };
+    }
+  };
+
+  // Update avatar ID
+  const updateAvatarId = async (avatarId) => {
+    if (!user) return { success: false, error: "No user logged in" };
+    
+    try {
+      const userDocRef = doc(firestore, "users", user.email);
+      await updateDoc(userDocRef, { avatar_id: avatarId });
+      
+      setUser({ ...user, avatar_id: avatarId });
+      return { success: true };
+    } catch (error) {
+      console.error("Error updating avatar ID:", error);
+      return { success: false, error };
+    }
+  };
+
   const value = {
     user,
     loading,
     signInWithGoogle,
-    logOut
+    logOut,
+    updateProfile,
+    uploadProfilePicture,
+    updateAvatarId
   };
 
   return (

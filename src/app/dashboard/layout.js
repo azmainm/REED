@@ -6,13 +6,22 @@ import { usePathname } from "next/navigation";
 import { Menu, X, Home, LayoutDashboard, User, LogOut, Plus } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/components/auth-context";
+import AvatarSelectionModal from "@/components/avatar-selection-modal";
 import Navbar from "@/components/navbar-auth";
 
 export default function DashboardLayout({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
   const { theme } = useTheme();
-  const { logOut } = useAuth();
+  const { user, logOut, updateAvatarId } = useAuth();
   const pathname = usePathname();
+
+  // Check if user needs to select an avatar
+  useEffect(() => {
+    if (user && user.email && user.avatar_id === null) {
+      setShowAvatarModal(true);
+    }
+  }, [user]);
 
   const toggleSidebar = (value) => {
     // Always toggle sidebar regardless of screen size
@@ -63,6 +72,17 @@ export default function DashboardLayout({ children }) {
     }
   };
 
+  // Handle avatar selection
+  const handleAvatarModalClose = (selectedAvatarId) => {
+    setShowAvatarModal(false);
+    
+    // If user has selected an avatar, update the user context
+    if (selectedAvatarId) {
+      // Avatar ID is updated in the modal component directly
+      console.log("Avatar selected:", selectedAvatarId);
+    }
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar toggleSidebar={toggleSidebar} />
@@ -85,7 +105,7 @@ export default function DashboardLayout({ children }) {
             <nav className="flex-1 space-y-2">
               <Link
                 href="/dashboard"
-                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard') ? 'bg-primary/10 text-primary' : 'hover:bg-accent'}`}
+                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-800'}`}
                 onClick={handleNavigation}
               >
                 <LayoutDashboard className="mr-2 h-5 w-5" />
@@ -93,7 +113,7 @@ export default function DashboardLayout({ children }) {
               </Link>
               <Link
                 href="/dashboard/profile"
-                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard/profile') ? 'bg-primary/10 text-primary' : 'hover:bg-accent'}`}
+                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard/profile') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-800'}`}
                 onClick={handleNavigation}
               >
                 <User className="mr-2 h-5 w-5" />
@@ -101,7 +121,7 @@ export default function DashboardLayout({ children }) {
               </Link>
               <button
                 onClick={logOut}
-                className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent transition-colors"
+                className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
               >
                 <LogOut className="mr-2 h-5 w-5" />
                 Logout
@@ -135,7 +155,7 @@ export default function DashboardLayout({ children }) {
             <nav className="flex-1 space-y-2">
               <Link
                 href="/dashboard"
-                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard') ? 'bg-primary/10 text-primary' : 'hover:bg-accent'}`}
+                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-800'}`}
                 onClick={handleNavigation}
               >
                 <LayoutDashboard className="mr-2 h-5 w-5" />
@@ -143,7 +163,7 @@ export default function DashboardLayout({ children }) {
               </Link>
               <Link
                 href="/dashboard/profile"
-                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard/profile') ? 'bg-primary/10 text-primary' : 'hover:bg-accent'}`}
+                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard/profile') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-800'}`}
                 onClick={handleNavigation}
               >
                 <User className="mr-2 h-5 w-5" />
@@ -152,7 +172,7 @@ export default function DashboardLayout({ children }) {
               
               <button
                 onClick={logOut}
-                className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent transition-colors"
+                className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
               >
                 <LogOut className="mr-2 h-5 w-5" />
                 Logout
@@ -166,6 +186,16 @@ export default function DashboardLayout({ children }) {
           <div className="w-full max-w-6xl">{children}</div>
         </main>
       </div>
+
+      {/* Avatar Selection Modal for First-time Users */}
+      {showAvatarModal && user && (
+        <AvatarSelectionModal
+          isOpen={showAvatarModal}
+          onClose={handleAvatarModalClose}
+          currentAvatarId={user.avatar_id}
+          isFirstTime={true}
+        />
+      )}
     </div>
   );
 } 

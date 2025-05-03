@@ -1,17 +1,14 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Pencil, BookOpen, Star, X } from "lucide-react";
 import Link from "next/link";
-
-// Dummy user data
-const dummyUser = {
-  name: "John Doe",
-  email: "john.doe@example.com",
-  dob: "1990-01-01",
-  xp: 750,
-  avatarUrl: null
-};
+import { useAuth } from "@/components/auth-context";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { firestore, storage } from "@/lib/firebase";
+import AvatarSelectionModal from "@/components/avatar-selection-modal";
+import AvatarDisplay from "@/components/avatar-display";
 
 // Dummy story data
 const myCreations = [
@@ -51,21 +48,90 @@ const favoriteStories = [
 ];
 
 export default function ProfilePage() {
+  const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState("creations");
   const [showEditModal, setShowEditModal] = useState(false);
-  const [userData, setUserData] = useState(dummyUser);
-  const [formData, setFormData] = useState(dummyUser);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [userData, setUserData] = useState(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    profilePicture: null,
+    avatar_id: null,
+    xp: 0
+  });
   const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const fileInputRef = useRef(null);
 
-  const handleEditSubmit = (e) => {
-    e.preventDefault();
-    setUserData(formData);
-    setShowEditModal(false);
-    setIsEditing(false);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+  // Fetch user data from Firestore
+  useEffect(() => {
+    if (user && user.email) {
+      const fetchUserData = async () => {
+        try {
+          const userDocRef = doc(firestore, "users", user.email);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setUserData(data);
+            setFormData({
+              name: data.name || "",
+              email: data.email || "",
+              profilePicture: data.profilePicture || null,
+              avatar_id: data.avatar_id || null,
+              xp: data.xp || 0
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+        }
+      };
+      
+      fetchUserData();
+    }
+  }, [user]);
+
+  if (loading || !userData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p>Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const handleEditSubmit = async (e) => {
+    if (e) e.preventDefault();
+    
+    try {
+      const userDocRef = doc(firestore, "users", userData.email);
+      
+      await updateDoc(userDocRef, {
+        name: formData.name,
+        avatar_id: formData.avatar_id
+      });
+      
+      setUserData({
+        ...userData,
+        name: formData.name,
+        avatar_id: formData.avatar_id
+      });
+      
+      setShowEditModal(false);
+      setIsEditing(false);
+      setToastMessage("Profile updated successfully!");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      setToastMessage("Failed to update profile. Please try again.");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -76,33 +142,97 @@ export default function ProfilePage() {
     });
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     if (e.target.files && e.target.files[0]) {
-      // In a real app, you would upload the file to a server
-      // For now, we'll just create a local URL
       const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onloadend = () => {
+      
+      try {
+        // Show a preview first
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFormData({
+            ...formData,
+            profilePicture: reader.result
+          });
+        };
+        reader.readAsDataURL(file);
+        
+        // Upload to Firebase Storage
+        const fileRef = ref(storage, `profile_pictures/${userData.email}`);
+        await uploadBytes(fileRef, file);
+        const downloadURL = await getDownloadURL(fileRef);
+        
+        // Update Firestore
+        const userDocRef = doc(firestore, "users", userData.email);
+        await updateDoc(userDocRef, {
+          profilePicture: downloadURL
+        });
+        
+        // Update local state
+        setUserData({
+          ...userData,
+          profilePicture: downloadURL
+        });
+        
         setFormData({
           ...formData,
-          avatarUrl: reader.result
+          profilePicture: downloadURL
         });
-      };
-      reader.readAsDataURL(file);
+        
+        setToastMessage("Profile picture updated successfully!");
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+      } catch (error) {
+        console.error("Error uploading profile picture:", error);
+        setToastMessage("Failed to upload profile picture. Please try again.");
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+      }
     }
   };
 
   const toggleEditing = () => {
     if (isEditing) {
       // Save changes
-      setUserData(formData);
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
+      handleEditSubmit();
     } else {
       // Start editing
-      setFormData(userData);
+      setFormData({
+        name: userData.name || "",
+        email: userData.email || "",
+        profilePicture: userData.profilePicture || null,
+        avatar_id: userData.avatar_id || null,
+        xp: userData.xp || 0
+      });
+      setIsEditing(true);
     }
-    setIsEditing(!isEditing);
+  };
+
+  const getInitials = (name) => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .map(n => n[0])
+      .join("")
+      .toUpperCase();
+  };
+
+  const handleAvatarModalClose = (selectedAvatarId) => {
+    setShowAvatarModal(false);
+    
+    if (selectedAvatarId) {
+      // The modal component updates the avatar_id in Firestore directly
+      // We just need to update our local state
+      setUserData({
+        ...userData,
+        avatar_id: selectedAvatarId
+      });
+      
+      setFormData({
+        ...formData,
+        avatar_id: selectedAvatarId
+      });
+    }
   };
 
   return (
@@ -131,16 +261,16 @@ export default function ProfilePage() {
                   accept="image/*"
                   onChange={handleFileChange}
                 />
-                {formData.avatarUrl ? (
+                {formData.profilePicture ? (
                   <img 
-                    src={formData.avatarUrl} 
+                    src={formData.profilePicture} 
                     alt={formData.name} 
                     className="h-24 w-24 rounded-full object-cover"
                   />
                 ) : (
                   <>
                     <span className="text-3xl font-bold text-primary">
-                      {formData.name.split(" ").map(n => n[0]).join("")}
+                      {getInitials(formData.name)}
                     </span>
                     <span className="text-xs text-primary mt-1">Upload</span>
                   </>
@@ -148,15 +278,15 @@ export default function ProfilePage() {
               </div>
             ) : (
               <div className="h-24 w-24 rounded-full bg-primary/20 flex items-center justify-center">
-                {userData.avatarUrl ? (
+                {userData.profilePicture ? (
                   <img 
-                    src={userData.avatarUrl} 
+                    src={userData.profilePicture} 
                     alt={userData.name} 
                     className="h-24 w-24 rounded-full object-cover"
                   />
                 ) : (
                   <span className="text-3xl font-bold text-primary">
-                    {userData.name.split(" ").map(n => n[0]).join("")}
+                    {getInitials(userData.name)}
                   </span>
                 )}
               </div>
@@ -172,37 +302,16 @@ export default function ProfilePage() {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-2xl font-bold focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-3/4 rounded-md border border-input bg-transparent px-3 py-2 text-lg font-medium focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               ) : (
-                userData.name
+                userData.name || "User"
               )}
             </h1>
-            <p className="text-muted-foreground mb-1">{userData.email}</p>
-            <div className="mb-3">
-              {isEditing ? (
-                <div className="mt-2">
-                  <label className="text-sm text-muted-foreground">Date of Birth</label>
-                  <div className="flex items-center mt-1">
-                    <input
-                      type="date"
-                      name="dob"
-                      value={formData.dob}
-                      onChange={handleInputChange}
-                      className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <p className="text-muted-foreground">
-                  <span className="text-sm">Date of Birth</span><br />
-                  {new Date(userData.dob).toLocaleDateString()}
-                </p>
-              )}
-            </div>
+            <p className="text-muted-foreground mb-3">{userData.email}</p>
             
             <div className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1">
-              <span className="font-medium text-primary">{userData.xp} XP</span>
+              <span className="font-medium text-primary">{userData.xp || 0} XP</span>
             </div>
           </div>
         </div>
@@ -273,6 +382,34 @@ export default function ProfilePage() {
         )}
       </div>
       
+      {/* Avatar Section */}
+      <div className="mt-12 mb-8 text-center">
+        <h2 className="text-xl font-bold mb-4">Interactive Reed Avatar</h2>
+        <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
+          This avatar represents you in interactive storytelling experiences.
+        </p>
+        
+        <div className="flex flex-col items-center">
+          {userData.avatar_id ? (
+            <div className="mb-6">
+              <AvatarDisplay avatarId={userData.avatar_id} size="extra-large" className="mx-auto" />
+            </div>
+          ) : (
+            <div className="p-8 border-2 border-dashed border-primary/30 rounded-lg mb-6">
+              <p className="text-muted-foreground">You haven&apos;t selected an avatar yet</p>
+            </div>
+          )}
+          
+          <button
+            onClick={() => setShowAvatarModal(true)}
+            className="rounded-lg border border-border bg-transparent px-3 py-1.5 text-sm font-medium hover:bg-accent flex items-center"
+          >
+            <Pencil className="h-3.5 w-3.5 mr-1" />
+            {userData.avatar_id ? "Change Avatar" : "Choose Avatar"}
+          </button>
+        </div>
+      </div>
+      
       {/* Edit Profile Modal */}
       {showEditModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
@@ -318,35 +455,6 @@ export default function ProfilePage() {
                 <p className="text-xs text-muted-foreground mt-1">Email cannot be changed</p>
               </div>
               
-              <div>
-                <label htmlFor="dob" className="block text-sm font-medium mb-1">
-                  Date of Birth
-                </label>
-                <input
-                  id="dob"
-                  name="dob"
-                  type="date"
-                  value={formData.dob}
-                  onChange={handleInputChange}
-                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="avatarUrl" className="block text-sm font-medium mb-1">
-                  Avatar URL
-                </label>
-                <input
-                  id="avatarUrl"
-                  name="avatarUrl"
-                  type="url"
-                  value={formData.avatarUrl || ""}
-                  onChange={handleInputChange}
-                  placeholder="https://example.com/avatar.jpg"
-                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              
               <div className="flex justify-end space-x-2 pt-2">
                 <button
                   type="button"
@@ -367,10 +475,20 @@ export default function ProfilePage() {
         </div>
       )}
       
+      {/* Avatar Selection Modal */}
+      {showAvatarModal && (
+        <AvatarSelectionModal
+          isOpen={showAvatarModal}
+          onClose={handleAvatarModalClose}
+          currentAvatarId={userData.avatar_id}
+          isFirstTime={false}
+        />
+      )}
+      
       {/* Toast Notification */}
       {showToast && (
         <div className="fixed bottom-4 right-4 rounded-lg bg-primary p-4 text-white shadow-lg animation-fade-in">
-          Profile updated successfully!
+          {toastMessage || "Profile updated successfully!"}
         </div>
       )}
     </div>

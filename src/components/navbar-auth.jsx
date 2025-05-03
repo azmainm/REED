@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useTheme } from "./theme-provider";
 import { useAuth } from "./auth-context";
 import { Moon, Sun, Menu, ChevronDown, User, Settings, LogOut } from "lucide-react";
+import AvatarDisplay from "./avatar-display";
 
 export default function NavbarAuth({ toggleSidebar }) {
   const { theme, setTheme } = useTheme();
@@ -17,6 +18,34 @@ export default function NavbarAuth({ toggleSidebar }) {
     if (toggleSidebar) {
       // If on mobile, also close the sidebar
       toggleSidebar(false);
+    }
+  };
+
+  // Function to determine what to display in the profile button
+  const renderProfileImage = () => {
+    if (user?.profilePicture) {
+      // Display profile picture if available
+      return (
+        <img 
+          src={user.profilePicture} 
+          alt={user.name || "User"} 
+          className="h-8 w-8 rounded-full object-cover"
+        />
+      );
+    } else if (user?.avatar_id) {
+      // Display avatar if available
+      return (
+        <div className="h-8 w-8 rounded-full overflow-hidden bg-primary/10">
+          <AvatarDisplay avatarId={user.avatar_id} size="small" />
+        </div>
+      );
+    } else {
+      // Fallback to user icon
+      return (
+        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
+          <User className="h-4 w-4 text-primary" />
+        </div>
+      );
     }
   };
 
@@ -59,19 +88,13 @@ export default function NavbarAuth({ toggleSidebar }) {
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className="flex items-center gap-2 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
             >
-              <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
-                <User className="h-4 w-4 text-primary" />
-              </div>
+              {renderProfileImage()}
               <ChevronDown className="h-4 w-4" />
             </button>
             
             {isDropdownOpen && (
               <div className="absolute right-0 mt-2 w-56 rounded-md border border-border bg-card shadow-lg">
-                <div className="p-2">
-                  <div className="px-3 py-2 text-sm font-medium">
-                    {user?.email || "user@example.com"}
-                  </div>
-                  <div className="h-px bg-border my-1" />
+                <div className="py-1">
                   <Link
                     href="/dashboard/profile"
                     className="flex items-center rounded-md px-3 py-2 text-sm hover:bg-accent"
