@@ -1,24 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Socrati Frontend
+
+This is the frontend for the Socrati platform, an interactive educational content platform.
 
 ## Getting Started
 
-First, run the development server:
+First, install the dependencies:
+
+```bash
+npm install
+# or
+yarn install
+```
+
+## Environment Variables
+
+Create a `.env.local` file in the root directory and add the required environment variables:
+
+```
+# Google Gemini API key for reed generation
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+You can obtain a Gemini API key from the [Google AI Studio](https://ai.google.dev/).
+
+## Development Server
+
+Run the development server:
 
 ```bash
 npm run dev
 # or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Features
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Reed Creation
+- Upload documents or take pictures on mobile
+- Extract text with OCR
+- Generate interactive dialogues with Google's Gemini API
+- Edit and customize the generated content
+- Publish interactive educational reeds
+
+## Project Structure
+
+- `/src/app` - Next.js application routes
+- `/src/components` - Reusable React components
+- `/src/lib` - Utility functions and services
+- `/src/hooks` - Custom React hooks
+- `/public` - Static assets
+
+## Technology Stack
+
+- Next.js
+- React
+- Tailwind CSS
+- Google Gemini API
+- Tesseract.js for OCR
 
 ## Learn More
 
