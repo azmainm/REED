@@ -105,7 +105,7 @@ export default function DashboardLayout({ children }) {
             <nav className="flex-1 space-y-2">
               <Link
                 href="/dashboard"
-                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-800'}`}
+                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
                 onClick={handleNavigation}
               >
                 <LayoutDashboard className="mr-2 h-5 w-5" />
@@ -113,7 +113,7 @@ export default function DashboardLayout({ children }) {
               </Link>
               <Link
                 href="/dashboard/profile"
-                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard/profile') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-800'}`}
+                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard/profile') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
                 onClick={handleNavigation}
               >
                 <User className="mr-2 h-5 w-5" />
@@ -121,7 +121,7 @@ export default function DashboardLayout({ children }) {
               </Link>
               <button
                 onClick={logOut}
-                className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+                className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
               >
                 <LogOut className="mr-2 h-5 w-5" />
                 Logout
@@ -155,7 +155,7 @@ export default function DashboardLayout({ children }) {
             <nav className="flex-1 space-y-2">
               <Link
                 href="/dashboard"
-                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-800'}`}
+                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
                 onClick={handleNavigation}
               >
                 <LayoutDashboard className="mr-2 h-5 w-5" />
@@ -163,7 +163,7 @@ export default function DashboardLayout({ children }) {
               </Link>
               <Link
                 href="/dashboard/profile"
-                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard/profile') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-800'}`}
+                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard/profile') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
                 onClick={handleNavigation}
               >
                 <User className="mr-2 h-5 w-5" />
@@ -172,7 +172,7 @@ export default function DashboardLayout({ children }) {
               
               <button
                 onClick={logOut}
-                className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+                className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
               >
                 <LogOut className="mr-2 h-5 w-5" />
                 Logout

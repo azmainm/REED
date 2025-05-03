@@ -4,6 +4,8 @@ import Image from "next/image";
 import { ArrowRight, BookOpen, Sparkles, Book, Users } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
+import landingImage from "../assets/landing.png";
+import landingDarkImage from "../assets/landing-dark.png";
 
 export default function Home() {
   const [count, setCount] = useState(0);
@@ -65,11 +67,19 @@ export default function Home() {
         {/* Mockup Image */}
         <div className="mt-16 w-full max-w-4xl overflow-hidden rounded-xl border border-border shadow-xl">
           <Image
-            src="/mockup-placeholder.png" 
+            src={landingImage}
             alt="Reed platform screenshot"
             width={1200}
             height={700}
-            className="w-full"
+            className="w-full block dark:hidden"
+            priority
+          />
+          <Image
+            src={landingDarkImage}
+            alt="Reed platform screenshot"
+            width={1200}
+            height={700}
+            className="w-full hidden dark:block"
             priority
           />
         </div>
@@ -81,7 +91,7 @@ export default function Home() {
           <h2 className="text-3xl font-bold mb-4">🧠 What is REED?</h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             REED is a platform where creators turn pages of real books, journals, and articles into interactive, 
-            lesson-driven story experiences — powered by AI, designed for curious minds, and gamified to keep you learning.
+            lesson-driven story experiences — powered by AI, designed for curious minds, and interactive to keep you learning.
           </p>
         </div>
         
