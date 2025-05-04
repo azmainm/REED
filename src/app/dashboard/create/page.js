@@ -236,7 +236,6 @@ export default function CreatePage() {
       setExtractedContent(content);
       sessionStorage.setItem('extractedContent', JSON.stringify(content));
       
-      console.log("Extracted Text (first 100 chars):", text.substring(0, 100));
       
       finishExtraction();
     } catch (error) {
@@ -267,8 +266,6 @@ export default function CreatePage() {
       setExtractedContent(content);
       sessionStorage.setItem('extractedContent', JSON.stringify(content));
       
-      console.log(`Extracted PDF Text (${result.data.pageCount} pages, first 100 chars):`, 
-        result.data.text.substring(0, 100));
       
       finishExtraction();
     } catch (error) {
@@ -304,7 +301,6 @@ export default function CreatePage() {
       setExtractedContent(content);
       sessionStorage.setItem('extractedContent', JSON.stringify(content));
       
-      console.log("Extracted OCR Text (first 100 chars):", combinedText.substring(0, 100));
       
       finishExtraction();
     } catch (error) {
@@ -359,7 +355,6 @@ export default function CreatePage() {
     setExtractedContent(content);
     sessionStorage.setItem('extractedContent', JSON.stringify(content));
     
-    console.log("Extracted OCR Text (from ImageUploader, first 100 chars):", text.substring(0, 100));
     
     // Show toast and set timer
     showToastMessage("Text extracted and stored for processing");
@@ -507,7 +502,6 @@ export default function CreatePage() {
   const nextStep = async () => {
     // If moving from step 1 to step 2 and we have extracted content
     if (currentStep === 1 && extractedContent) {
-      console.log("Proceeding with extracted content:", extractedContent);
     }
     
     // For step 3, we'll handle generation in the useEffect hook

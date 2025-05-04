@@ -106,7 +106,6 @@ export async function extractPdfText(file) {
  */
 export async function generateReed(extractedText, style, retryCount = 0) {
   try {
-    console.log(`Attempting to generate reed with style: ${style} (attempt ${retryCount + 1}/${MAX_RETRIES + 1})`);
     
     // Call our backend API for LLM generation
     const result = await generateReedWithLLM(extractedText, style);
@@ -125,7 +124,6 @@ export async function generateReed(extractedText, style, retryCount = 0) {
         (error.message.includes('timeout') || 
          error.message.includes('500') || 
          error.message.includes('503'))) {
-      console.log(`Retrying reed generation (${retryCount + 1}/${MAX_RETRIES})...`);
       
       // Exponential backoff: wait longer between each retry
       const backoffTime = Math.pow(2, retryCount) * 1000;
@@ -257,7 +255,6 @@ export async function saveReedToFirestore(reedData) {
       try {
         // Compress the image to reduce size
         coverImageUrl = await compressImage(coverImageUrl);
-        console.log("Image compressed for Firestore storage");
       } catch (error) {
         console.error("Error compressing image:", error);
         // Continue with the original image if compression fails

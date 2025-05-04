@@ -6,7 +6,6 @@ const API_TIMEOUT = 60000; // 60 seconds
 
 export async function POST(request) {
   try {
-    console.log('Starting reed generation process');
     const { extractedText, style } = await request.json();
     
     if (!extractedText || extractedText.trim() === '') {
@@ -27,7 +26,6 @@ export async function POST(request) {
       prompt = constructPlatonicPrompt(extractedText);
     }
     
-    console.log(`Calling Mistral API with ${style} style prompt`);
     
     try {
       // Initialize OpenAI client with Mistral configuration
@@ -63,7 +61,6 @@ export async function POST(request) {
           throw new Error('Mistral API returned empty content');
         }
         
-        console.log('Reed generation successful');
         return NextResponse.json({ 
           success: true, 
           generatedText 

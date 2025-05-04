@@ -266,9 +266,7 @@ export default function ProfilePage() {
         reader.readAsDataURL(file);
         
         // Compress the image and store as base64 directly in Firestore
-        console.log("Compressing image...");
         const compressedImage = await compressImage(file);
-        console.log("Image compressed successfully");
         
         // Update Firestore and auth context with the compressed base64 image
         const result = await updateProfilePicture(compressedImage);

@@ -78,8 +78,6 @@ export default function DashboardLayout({ children }) {
     
     // If user has selected an avatar, update the user context
     if (selectedAvatarId) {
-      // Avatar ID is updated in the modal component directly
-      console.log("Avatar selected:", selectedAvatarId);
     }
   };
 

@@ -97,16 +97,11 @@ export function AuthProvider({ children }) {
   // Sign out function
   const logOut = async () => {
     try {
-      console.log("Logging out user:", user?.email);
       const auth = getAuth();
-      console.log("Auth object obtained");
       await signOut(auth);
-      console.log("Firebase signOut complete");
       setUser(null);
       setIsNewUser(false);
-      console.log("User state cleared");
       router.push('/');
-      console.log("Redirecting to homepage");
       return { success: true };
     } catch (error) {
       console.error("Error signing out:", error);
@@ -156,7 +151,6 @@ export function AuthProvider({ children }) {
         profilePicture: imageData
       });
       
-      console.log("Profile picture updated in AuthContext");
       return { success: true };
     } catch (error) {
       console.error("Error updating profile picture:", error);
