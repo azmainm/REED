@@ -300,5 +300,26 @@ export async function saveReedToFirestore(reedData) {
 }
 
 /**
+ * Wake up the backend server to prevent it from going to sleep
+ * @public
+ * @returns {Promise<Object>} - Success status
+ */
+export async function wakeUpBackend() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/system/wake-up`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    return { status: 'error', error: error.message };
+  }
+}
+
+/**
  * Additional API methods can be added here
  */ 

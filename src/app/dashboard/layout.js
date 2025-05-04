@@ -8,6 +8,7 @@ import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/components/auth-context";
 import AvatarSelectionModal from "@/components/avatar-selection-modal";
 import Navbar from "@/components/navbar-auth";
+import { wakeUpBackend } from '@/lib/api-service';
 
 export default function DashboardLayout({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -81,6 +82,17 @@ export default function DashboardLayout({ children }) {
     }
   };
 
+  // Handle the Create button click
+  const handleCreateClick = () => {
+    // Wake up the backend before navigating to the create page
+    wakeUpBackend().catch(error => {
+      console.error('Failed to wake up backend:', error);
+    });
+    
+    // Continue with navigation
+    handleNavigation();
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar toggleSidebar={toggleSidebar} />
@@ -93,7 +105,7 @@ export default function DashboardLayout({ children }) {
             <Link
               href="/dashboard/create"
               className="mb-6 flex items-center justify-center rounded-lg bg-gradient-to-r from-blue-500 to-teal-500 px-4 py-3 text-sm font-medium text-white shadow-md hover:opacity-90 transition-colors"
-              onClick={handleNavigation}
+              onClick={handleCreateClick}
             >
               <Plus className="mr-2 h-5 w-5" />
               CREATE
@@ -151,7 +163,7 @@ export default function DashboardLayout({ children }) {
             <Link
               href="/dashboard/create"
               className="mb-6 flex items-center justify-center rounded-lg bg-gradient-to-r from-blue-500 to-teal-500 px-4 py-3 text-sm font-medium text-white shadow-md hover:opacity-90 transition-colors"
-              onClick={handleNavigation}
+              onClick={handleCreateClick}
             >
               <Plus className="mr-2 h-5 w-5" />
               CREATE
