@@ -1,23 +1,21 @@
 /**
  * API Service for Socrati
  * Handles all backend API calls and data processing
+ * @module api-service
  */
 
 import { firestore } from './firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, setDoc } from 'firebase/firestore';
 
-// Backend API base URL - can be configured based on environment
+// Configuration constants
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-
-// Default timeout for API calls (30 seconds)
 const API_TIMEOUT = 30000;
-// Maximum number of retries
 const MAX_RETRIES = 2;
-// Maximum image dimension (width or height) for cover images
 const MAX_IMAGE_DIMENSION = 800;
 
 /**
  * Compress an image by reducing its dimensions and quality
+ * @private
  * @param {string} base64Image - The base64 encoded image data
  * @returns {Promise<string>} - Compressed base64 image
  */
@@ -66,9 +64,11 @@ async function compressImage(base64Image) {
 }
 
 /**
- * Extract text from a PDF file
+ * Extract text from a PDF file using the backend extraction service
+ * @public
  * @param {File} file - The PDF file to extract text from
- * @returns {Promise<Object>} - The extraction result
+ * @returns {Promise<Object>} - The extraction result containing success status and extracted text
+ * @throws {Error} If the extraction process fails
  */
 export async function extractPdfText(file) {
   try {
@@ -98,14 +98,16 @@ export async function extractPdfText(file) {
 }
 
 /**
- * Generate a reed using the extracted text and selected style
+ * Generate a reed using the extracted text and selected teaching style
+ * @public
  * @param {string} extractedText - The text extracted from uploaded documents
  * @param {string} style - The style of reed to generate (Socratic or Platonic)
- * @param {number} retryCount - Current retry attempt (used internally)
- * @returns {Promise<Object>} - The generated reed
+ * @param {number} [retryCount=0] - Current retry attempt (used internally)
+ * @returns {Promise<Object>} - The generated reed with success status and content
  */
 export async function generateReed(extractedText, style, retryCount = 0) {
   try {
+    console.log(`Attempting to generate reed with style: ${style} (attempt ${retryCount + 1}/${MAX_RETRIES + 1})`);
     
     // Call our backend API for LLM generation
     const result = await generateReedWithLLM(extractedText, style);
@@ -124,6 +126,7 @@ export async function generateReed(extractedText, style, retryCount = 0) {
         (error.message.includes('timeout') || 
          error.message.includes('500') || 
          error.message.includes('503'))) {
+      console.log(`Retrying reed generation (${retryCount + 1}/${MAX_RETRIES})...`);
       
       // Exponential backoff: wait longer between each retry
       const backoffTime = Math.pow(2, retryCount) * 1000;
@@ -142,9 +145,11 @@ export async function generateReed(extractedText, style, retryCount = 0) {
 
 /**
  * Backend API call to generate reed with LLM
+ * @private
  * @param {string} extractedText - The text extracted from uploaded documents
  * @param {string} style - The style of reed to generate (Socratic or Platonic)
  * @returns {Promise<Object>} - The LLM generated reed
+ * @throws {Error} If the LLM generation fails
  */
 export async function generateReedWithLLM(extractedText, style) {
   try {
@@ -173,9 +178,10 @@ export async function generateReedWithLLM(extractedText, style) {
 }
 
 /**
- * Format the raw dialogue into a more structured format for the application
+ * Format the raw dialogue text into a structured format for the application
+ * @public
  * @param {string} dialogueText - The raw dialogue text from the LLM
- * @returns {Object} - Structured dialogue object
+ * @returns {Object} - Structured dialogue object with title, description, and dialogue array
  */
 export function formatDialogue(dialogueText) {
   const lines = dialogueText.trim().split('\n');
@@ -233,8 +239,9 @@ export function formatDialogue(dialogueText) {
 
 /**
  * Convert the formatted dialogue to a JSON string representation
+ * @public
  * @param {Object} formattedDialogue - The formatted dialogue object
- * @returns {string} - JSON string of the dialogue
+ * @returns {string} - JSON string of the dialogue with proper indentation
  */
 export function dialogueToJsonString(formattedDialogue) {
   return JSON.stringify(formattedDialogue, null, 2);
@@ -242,56 +249,53 @@ export function dialogueToJsonString(formattedDialogue) {
 
 /**
  * Save a completed reed to Firestore directly from the frontend
+ * @public
  * @param {Object} reedData - The reed data to save
- * @returns {Promise<Object>} - The save result
+ * @param {string} reedData.title - The title of the reed
+ * @param {string} reedData.description - Description of the reed content
+ * @param {string} reedData.category - Category of the reed
+ * @param {Array} reedData.dialogues - Array of dialogue exchanges
+ * @param {string} reedData.authorName - Name of the content author
+ * @param {string} [reedData.coverImageUrl] - Base64 or URL of the cover image
+ * @returns {Promise<Object>} - The save result with the new document ID
+ * @throws {Error} If the save operation fails
  */
 export async function saveReedToFirestore(reedData) {
   try {
+    // Process cover image if provided (compress it)
     let coverImageUrl = reedData.coverImageUrl;
-    
-    // If we have a base64 image, compress it before saving to Firestore
-    // This helps avoid exceeding Firestore's document size limit (1MB)
-    if (coverImageUrl && coverImageUrl.startsWith('data:image')) {
+    if (coverImageUrl && coverImageUrl.startsWith('data:')) {
       try {
-        // Compress the image to reduce size
         coverImageUrl = await compressImage(coverImageUrl);
       } catch (error) {
-        console.error("Error compressing image:", error);
+        console.warn('Failed to compress cover image:', error);
         // Continue with the original image if compression fails
       }
     }
     
-    // Create reed document with all relevant fields
-    const firestoreData = {
-      title: reedData.title,
-      description: reedData.description,
-      category: reedData.category,
-      dialogues: reedData.dialogues,
-      userName: reedData.userName,
-      authorName: reedData.authorName || reedData.userName, // Use provided authorName or fallback to userName
-      userId: reedData.userId, // Store userId for easier querying
-      coverImageUrl: coverImageUrl, // Store the base64 string directly
+    // Prepare the complete data object for Firestore
+    const completeReedData = {
+      ...reedData,
+      coverImageUrl,
       postedOn: serverTimestamp(),
-      lastUpdated: serverTimestamp(),
-      likes: 0,
+      updatedOn: serverTimestamp(),
       views: 0,
-      totalDialogues: reedData.dialogues.length,
-      isPublished: true,
-      tags: [reedData.category.toLowerCase()], // Add tags for filtering
+      likes: 0,
+      published: true
     };
     
-    // Save to Firestore directly
-    const docRef = await addDoc(collection(firestore, 'reeds'), firestoreData);
+    // Add the document to Firestore
+    const docRef = await addDoc(collection(firestore, "reeds"), completeReedData);
     
-    // Return success response with document ID
+    console.log("Reed published with ID:", docRef.id);
+    
     return {
       success: true,
-      reedId: docRef.id,
-      message: 'Reed saved successfully'
+      reedId: docRef.id
     };
   } catch (error) {
-    console.error('Error saving reed to Firestore:', error);
-    throw error;
+    console.error("Error saving reed to Firestore:", error);
+    throw new Error("Failed to save reed: " + error.message);
   }
 }
 

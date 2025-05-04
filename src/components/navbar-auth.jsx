@@ -1,17 +1,36 @@
+/**
+ * Authentication-aware Navigation Bar Component
+ * 
+ * Displays a responsive navigation bar with authentication-related functionality,
+ * including user profile dropdown menu and theme toggle.
+ * 
+ * @component
+ */
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTheme } from "./theme-provider";
 import { useAuth } from "@/contexts/AuthContext";
 import { Moon, Sun, Menu, ChevronDown, User, Settings, LogOut } from "lucide-react";
 import AvatarDisplay from "./avatar-display";
 
+/**
+ * NavbarAuth component
+ * 
+ * @param {Object} props - Component props
+ * @param {Function} props.toggleSidebar - Function to toggle sidebar visibility on mobile
+ * @returns {JSX.Element} Rendered component
+ */
 export default function NavbarAuth({ toggleSidebar }) {
   const { theme, setTheme } = useTheme();
   const { user, logOut } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
+  /**
+   * Handles navigation actions, closing menus and sidebar as needed
+   */
   const handleNavigation = () => {
     // Close any open menus when navigating
     setIsDropdownOpen(false);
@@ -21,26 +40,19 @@ export default function NavbarAuth({ toggleSidebar }) {
     }
   };
 
-  // Function to determine what to display in the profile button
+  /**
+   * Determine what to display in the profile button based on available user data
+   * @returns {JSX.Element} The appropriate profile image element
+   */
   const renderProfileImage = () => {
-    if (user?.profilePicture) {
-      // Display profile picture if available
+    if (user?.profilePicture && !imageError) {
+      // Display profile picture if available and not errored
       return (
         <img 
           src={user.profilePicture} 
           alt={user.name || "User"} 
           className="h-8 w-8 rounded-full object-cover"
-          onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = '';
-            // Fallback to initials or user icon if the image fails to load
-            if (user?.name) {
-              const initials = user.name.split(" ").map(n => n[0]).join("").toUpperCase();
-              e.target.parentElement.innerHTML = `<div class="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center"><span class="text-xs font-bold text-primary">${initials}</span></div>`;
-            } else {
-              e.target.parentElement.innerHTML = `<div class="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-primary"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>`;
-            }
-          }}
+          onError={() => setImageError(true)}
         />
       );
     } else if (user?.avatar_id) {
@@ -48,6 +60,14 @@ export default function NavbarAuth({ toggleSidebar }) {
       return (
         <div className="h-8 w-8 rounded-full overflow-hidden bg-primary/10">
           <AvatarDisplay avatarId={user.avatar_id} size="small" />
+        </div>
+      );
+    } else if (user?.name) {
+      // Display user initials if name is available
+      const initials = user.name.split(" ").map(n => n[0]).join("").toUpperCase();
+      return (
+        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
+          <span className="text-xs font-bold text-primary">{initials}</span>
         </div>
       );
     } else {
@@ -59,6 +79,11 @@ export default function NavbarAuth({ toggleSidebar }) {
       );
     }
   };
+
+  // Reset image error state when user changes
+  useEffect(() => {
+    setImageError(false);
+  }, [user?.profilePicture]);
 
   return (
     <header className="fixed top-0 z-40 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

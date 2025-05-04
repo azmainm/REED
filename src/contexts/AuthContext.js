@@ -1,3 +1,11 @@
+/**
+ * Authentication Context for Socrati
+ * 
+ * Provides authentication state and methods throughout the application
+ * using React Context API.
+ * 
+ * @module AuthContext
+ */
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
@@ -9,14 +17,27 @@ import { firestore } from '@/lib/firebase';
 // Create the auth context
 const AuthContext = createContext();
 
-// Auth provider component
+/**
+ * Auth Provider Component
+ * 
+ * Manages authentication state and provides auth-related methods to the application.
+ * 
+ * @component
+ * @param {Object} props - Component props
+ * @param {React.ReactNode} props.children - Child components to render
+ * @returns {JSX.Element} Auth Provider component
+ */
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isNewUser, setIsNewUser] = useState(false);
   const router = useRouter();
 
-  // Set up the Firebase auth state listener
+  /**
+   * Set up the Firebase auth state listener
+   * Synchronizes the user state with Firebase Authentication
+   * and fetches additional user data from Firestore
+   */
   useEffect(() => {
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
@@ -77,7 +98,12 @@ export function AuthProvider({ children }) {
     return () => unsubscribe();
   }, []);
 
-  // Sign in with Google
+  /**
+   * Sign in with Google Authentication
+   * 
+   * @async
+   * @returns {Promise<Object>} Result object with success status and user or error
+   */
   const signInWithGoogle = async () => {
     try {
       setLoading(true);
@@ -94,7 +120,12 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Sign out function
+  /**
+   * Sign out the current user and redirect to home page
+   * 
+   * @async
+   * @returns {Promise<Object>} Result object with success status and any error
+   */
   const logOut = async () => {
     try {
       const auth = getAuth();
@@ -109,7 +140,13 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Update avatar ID
+  /**
+   * Update user's avatar ID in Firestore and local state
+   * 
+   * @async
+   * @param {string} avatarId - The ID of the selected avatar
+   * @returns {Promise<Object>} Result object with success status and any error
+   */
   const updateAvatarId = async (avatarId) => {
     if (!user || !user.email) return { success: false, error: "No user logged in" };
     
@@ -135,7 +172,13 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Update profile picture
+  /**
+   * Update user's profile picture in Firestore and local state
+   * 
+   * @async
+   * @param {string} imageData - The base64 or URL of the profile picture
+   * @returns {Promise<Object>} Result object with success status and any error
+   */
   const updateProfilePicture = async (imageData) => {
     if (!user || !user.email) return { success: false, error: "No user logged in" };
     
@@ -158,7 +201,7 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Context value
+  // Context value with all auth-related state and methods
   const value = {
     user,
     loading,
@@ -178,7 +221,12 @@ export function AuthProvider({ children }) {
   );
 }
 
-// Custom hook to use the auth context
+/**
+ * Custom hook to use the auth context
+ * 
+ * @returns {Object} The auth context value
+ * @throws {Error} If used outside of an AuthProvider
+ */
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
