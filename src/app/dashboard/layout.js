@@ -102,6 +102,14 @@ export default function DashboardLayout({ children }) {
             {/* Menu Items */}
             <nav className="flex-1 space-y-2">
               <Link
+                href="/"
+                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
+                onClick={handleNavigation}
+              >
+                <Home className="mr-2 h-5 w-5" />
+                Home
+              </Link>
+              <Link
                 href="/dashboard"
                 className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
                 onClick={handleNavigation}
@@ -151,6 +159,14 @@ export default function DashboardLayout({ children }) {
             
             {/* Menu Items */}
             <nav className="flex-1 space-y-2">
+              <Link
+                href="/"
+                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
+                onClick={handleNavigation}
+              >
+                <Home className="mr-2 h-5 w-5" />
+                Home
+              </Link>
               <Link
                 href="/dashboard"
                 className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}

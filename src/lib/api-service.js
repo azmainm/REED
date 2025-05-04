@@ -281,7 +281,7 @@ export async function saveReedToFirestore(reedData) {
       updatedOn: serverTimestamp(),
       views: 0,
       likes: 0,
-      published: true
+      isPublished: true
     };
     
     // Add the document to Firestore

@@ -15,7 +15,8 @@ import {
   X,
   Camera,
   Trash,
-  AlertCircle
+  AlertCircle,
+  BookOpen
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createWorker } from 'tesseract.js';
@@ -120,7 +121,7 @@ export default function CreatePage() {
             const timer = setTimeout(() => {
               setGenerationDelayComplete(true);
               showToastMessage("Ready to continue to next step");
-            }, 2000);
+            }, 1000);
             
             setGenerationDelayTimer(timer);
           } else {
@@ -339,7 +340,7 @@ export default function CreatePage() {
     const timer = setTimeout(() => {
       setExtractionComplete(true);
       showToastMessage("Ready to continue to next step");
-    }, 2000);
+    }, 1000);
     
     setExtractionTimer(timer);
   };
@@ -369,7 +370,7 @@ export default function CreatePage() {
     const timer = setTimeout(() => {
       setExtractionComplete(true);
       showToastMessage("Ready to continue to next step");
-    }, 2000);
+    }, 1000);
     
     setExtractionTimer(timer);
   };
@@ -451,6 +452,7 @@ export default function CreatePage() {
         authorName: authorName, // Author name from metadata
         userId: user?.uid || null, // User ID for querying
         coverImageUrl: coverImagePreview, // Use the base64 image data directly
+        style: selectedStyle, // Add the selected teaching style
         // Additional metadata can be added here
         originalContent: extractedContent ? {
           type: extractedContent.type,
@@ -479,7 +481,7 @@ export default function CreatePage() {
       // Redirect to dashboard after a delay
       setTimeout(() => {
         router.push("/dashboard");
-      }, 2000);
+      }, 1000);
     } catch (error) {
       console.error("Error publishing reed:", error);
       setSaveError(error.message);
@@ -839,7 +841,7 @@ export default function CreatePage() {
               Choose a style for your interactive reed.
             </p>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div 
                 className={`rounded-lg border p-4 cursor-pointer transition-all ${
                   selectedStyle === "Platonic"
@@ -889,6 +891,33 @@ export default function CreatePage() {
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
                       Question-based approach that guides learners to discover answers through reflection.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div 
+                className={`rounded-lg border p-4 cursor-pointer transition-all ${
+                  selectedStyle === "Story"
+                    ? "border-primary bg-primary/5 ring-2 ring-primary/20 scale-[1.02]"
+                    : "border-border hover:border-primary/50"
+                }`}
+                onClick={() => handleStyleSelect("Story")}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                    <BookOpen className="h-5 w-5 text-primary" />
+                  </div>
+                  
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold">Story</h3>
+                      {selectedStyle === "Story" && (
+                        <Check className="h-4 w-4 text-primary" />
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Narrative approach where concepts are explained through engaging stories and examples.
                     </p>
                   </div>
                 </div>

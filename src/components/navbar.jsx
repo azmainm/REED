@@ -142,13 +142,6 @@ export default function Navbar() {
               >
                 Pricing
               </Link>
-              <Link 
-                href="#help" 
-                className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent"
-                onClick={handleNavigation}
-              >
-                Help
-              </Link>
               
               {user ? (
                 <Link

@@ -29,9 +29,10 @@ export default function Dashboard() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [favoriteReeds, setFavoriteReeds] = useState([]);
   const [completedReeds, setCompletedReeds] = useState([]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Categories
-  const categories = ["Fiction", "Biographies", "Business", "Finance", "Philosophy", "Ethics", "Logic", "Politics", "Communication", "Science", "Mathematics"];
+  const categories = ["All", "Fiction", "Biographies", "Business", "Finance", "Philosophy", "Ethics", "Logic", "Politics", "Communication", "Science", "Mathematics"];
 
   // Fetch reeds from Firestore
   useEffect(() => {
@@ -195,18 +196,40 @@ export default function Dashboard() {
           </div>
           
           <div className="relative inline-block md:w-auto">
-            <select
-              value={selectedCategory}
-              onChange={(e) => handleCategoryChange(e.target.value)}
-              className="h-10 w-full appearance-none rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="h-10 appearance-none rounded-md border border-input bg-background px-3 py-2 text-sm flex items-center justify-between min-w-[120px]"
             >
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-            <Filter className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50" />
+              <span>{selectedCategory}</span>
+              <Filter className="h-4 w-4 ml-2 opacity-50" />
+            </button>
+            
+            {dropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setDropdownOpen(false)}
+                ></div>
+                <div className="absolute z-20 mt-1 max-h-60 w-[200px] overflow-auto rounded-md border border-border bg-background right-0 shadow-lg">
+                  <div className="py-1">
+                    {categories.map((category) => (
+                      <button
+                        key={category}
+                        className={`block w-full text-left px-4 py-2 text-sm hover:bg-accent ${
+                          selectedCategory === category ? "bg-primary/10 text-primary" : ""
+                        }`}
+                        onClick={() => {
+                          handleCategoryChange(category);
+                          setDropdownOpen(false);
+                        }}
+                      >
+                        {category}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           
           <div className="flex items-center rounded-lg border border-input p-1">
@@ -281,9 +304,16 @@ export default function Dashboard() {
                     {reed.category}
                   </div>
                   
+                  {/* Style badge if available */}
+                  {reed.style && (
+                    <div className="absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
+                      {reed.style}
+                    </div>
+                  )}
+                  
                   {/* Completed badge */}
                   {isCompleted(reed.id) && (
-                    <div className="absolute top-3 right-3 bg-green-500 text-white rounded-full p-1">
+                    <div className="absolute top-12 right-3 bg-green-500 text-white rounded-full p-1">
                       <Clock className="h-4 w-4" />
                     </div>
                   )}
@@ -347,6 +377,13 @@ export default function Dashboard() {
                     <div className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(reed.category)}`}>
                       {reed.category}
                     </div>
+                    
+                    {/* Style badge if available */}
+                    {reed.style && (
+                      <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
+                        {reed.style}
+                      </div>
+                    )}
                   </div>
                   
                   <div className="p-4 flex-1">

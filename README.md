@@ -8,9 +8,15 @@ Socrati is a modern interactive educational platform that transforms static cont
 - **Document Processing**: Upload PDFs, text files, or take photos to extract content
 - **OCR Integration**: Extract text from images using Tesseract.js
 - **AI-Powered Dialogue Generation**: Transform text into interactive dialogues using advanced LLMs
-- **Multiple Teaching Styles**: Choose between Socratic or Platonic dialogue formats
+- **Multiple Teaching Styles**: Choose between Socratic, Platonic, or Story dialogue formats
 - **Content Management**: Edit, preview, and publish interactive educational content
 - **User Profiles**: Track created content, stats, and manage user settings
+
+### Teaching Styles
+
+- **Socratic**: Question-based approach that guides learners to discover answers through reflection
+- **Platonic**: Traditional dialogue format with clear explanations and guided learning
+- **Story**: Narrative approach where concepts are explained through engaging stories and examples
 
 ### For Readers
 - **Interactive Learning**: Engage with content through conversation-based interfaces
