@@ -18,7 +18,7 @@ export default function DashboardLayout({ children }) {
 
   // Check if user needs to select an avatar
   useEffect(() => {
-    if (user && user.email && user.avatar_id === null) {
+    if (user && user.email && (user.avatar_id === null || user.hasSelectedAvatar === false)) {
       setShowAvatarModal(true);
     }
   }, [user]);
@@ -119,13 +119,13 @@ export default function DashboardLayout({ children }) {
                 <User className="mr-2 h-5 w-5" />
                 Profile
               </Link>
-              <button
+              {/* <button
                 onClick={logOut}
                 className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
               >
                 <LogOut className="mr-2 h-5 w-5" />
                 Logout
-              </button>
+              </button> */}
             </nav>
           </div>
         </aside>
@@ -170,13 +170,13 @@ export default function DashboardLayout({ children }) {
                 Profile
               </Link>
               
-              <button
+              {/* <button
                 onClick={logOut}
                 className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
               >
                 <LogOut className="mr-2 h-5 w-5" />
                 Logout
-              </button>
+              </button> */}
             </nav>
           </div>
         </aside>

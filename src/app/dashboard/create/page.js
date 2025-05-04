@@ -20,13 +20,21 @@ import {
 import { useRouter } from "next/navigation";
 import { createWorker } from 'tesseract.js';
 import ImageUploader from "@/components/image-uploader";
-import { generateReed, formatDialogue, dialogueToJsonString } from "@/lib/reed-service";
+import { 
+  generateReed, 
+  formatDialogue, 
+  dialogueToJsonString, 
+  extractPdfText, 
+  saveReedToFirestore 
+} from "@/lib/api-service";
+import { useAuth } from "@/contexts/AuthContext";
 
 // List of categories
-const categories = ["Philosophy", "Ethics", "Logic", "Politics", "Communication", "Science", "Mathematics"];
+const categories = ["Fiction", "Biographies", "Business", "Finance", "Philosophy", "Ethics", "Logic", "Politics", "Communication", "Science", "Mathematics"];
 
 export default function CreatePage() {
   const router = useRouter();
+  const { user } = useAuth();
   const fileInputRef = useRef(null);
   const coverImageInputRef = useRef(null);
   const [currentStep, setCurrentStep] = useState(1);
@@ -38,10 +46,11 @@ export default function CreatePage() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [metadata, setMetadata] = useState({
-    title: "The Socratic Method",
-    description: "An interactive dialogue on critical thinking",
+    title: "",
+    description: "",
     category: "Philosophy",
-    coverImage: null
+    coverImage: null,
+    authorName: ""
   });
   const [coverImagePreview, setCoverImagePreview] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -55,6 +64,15 @@ export default function CreatePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState(null);
   const [dialogueGenerated, setDialogueGenerated] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractionComplete, setExtractionComplete] = useState(false);
+  const [extractionTimer, setExtractionTimer] = useState(null);
+  const [dialogueData, setDialogueData] = useState(null);
+  const [savingReed, setSavingReed] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+  const [generationDelayComplete, setGenerationDelayComplete] = useState(false);
+  const [generationDelayTimer, setGenerationDelayTimer] = useState(null);
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
 
   // Detect device type on component mount
   useEffect(() => {
@@ -79,6 +97,7 @@ export default function CreatePage() {
         try {
           setIsGenerating(true);
           setGenerationError(null);
+          setGenerationDelayComplete(false);
           
           // Clear any previous text
           setStoryText("");
@@ -87,9 +106,23 @@ export default function CreatePage() {
           
           if (result.success) {
             const formattedDialogue = formatDialogue(result.generatedText);
+            setDialogueData(formattedDialogue);
             setStoryText(dialogueToJsonString(formattedDialogue));
             setDialogueGenerated(true);
             showToastMessage('Reed generated successfully');
+            
+            // Clear any existing timer
+            if (generationDelayTimer !== null) {
+              clearTimeout(generationDelayTimer);
+            }
+            
+            // Set a 3-second timer before enabling the next button
+            const timer = setTimeout(() => {
+              setGenerationDelayComplete(true);
+              showToastMessage("Ready to continue to next step");
+            }, 2000);
+            
+            setGenerationDelayTimer(timer);
           } else {
             throw new Error(result.error || 'Failed to generate reed');
           }
@@ -104,11 +137,26 @@ export default function CreatePage() {
     };
     
     generateDialogueOnStep3();
-  }, [currentStep, selectedStyle, extractedContent, dialogueGenerated]);
+    
+    // Cleanup
+    return () => {
+      if (generationDelayTimer !== null) {
+        clearTimeout(generationDelayTimer);
+      }
+    };
+  }, [currentStep, selectedStyle, extractedContent, dialogueGenerated, generationDelayTimer]);
 
-  const handleFilesSelected = (files) => {
+  const handleFilesSelected = async (files) => {
+    if (files.length === 0) {
+      setFileUploaded(false);
+      setFileName("");
+      showToastMessage("No files selected");
+      return;
+    }
+
     setUploadedFiles(files);
-    setFileUploaded(files.length > 0);
+    setFileUploaded(true);
+    setExtractionComplete(false);
     
     if (files.length === 1 && !files[0].type.startsWith('image/')) {
       // If it's a single non-image file, update the fileName
@@ -118,20 +166,227 @@ export default function CreatePage() {
       setFileName(`${files.length} file(s) selected`);
     }
     
-    showToastMessage(files.length > 0 ? "Files uploaded successfully" : "No files selected");
+    showToastMessage("Files uploaded successfully");
+    
+    // Begin extraction process
+    await extractTextFromFiles(files);
+  };
+
+  const extractTextFromFiles = async (files) => {
+    setIsExtracting(true);
+    setExtractionComplete(false);
+    
+    try {
+      // Handle text files directly
+      if (files.length === 1 && files[0].type === 'text/plain') {
+        await handleTextFile(files[0]);
+        return;
+      }
+      
+      // Handle PDF files
+      if (files.length === 1 && files[0].type === 'application/pdf') {
+        await handlePdfFile(files[0]);
+        return;
+      }
+      
+      // Handle DOC/DOCX files (would need a service)
+      if (files.length === 1 && 
+         (files[0].type === 'application/msword' || 
+          files[0].type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')) {
+        // This would require a backend service
+        showToastMessage("Word documents require server processing, uploading...");
+        // Here you'd send to your server
+        return;
+      }
+      
+      // Handle image files with OCR
+      const imageFiles = files.filter(file => file.type.startsWith('image/'));
+      if (imageFiles.length > 0) {
+        await handleImageFiles(imageFiles);
+        return;
+      }
+
+      // If we got here, we don't know how to handle these files
+      showToastMessage("Unsupported file type");
+      setIsExtracting(false);
+      
+    } catch (error) {
+      console.error("Error extracting content:", error);
+      showToastMessage("Error extracting content from files");
+      setIsExtracting(false);
+    }
+  };
+
+  const handleTextFile = async (file) => {
+    showToastMessage("Reading text file...");
+    
+    try {
+      const text = await readTextFile(file);
+      
+      const content = {
+        type: 'text',
+        text: text,
+        timestamp: new Date().toISOString(),
+        fileName: file.name,
+        fileSize: file.size,
+        filePath: URL.createObjectURL(file)
+      };
+      
+      // Store in state and localStorage/sessionStorage for persistence
+      setExtractedContent(content);
+      sessionStorage.setItem('extractedContent', JSON.stringify(content));
+      
+      console.log("Extracted Text (first 100 chars):", text.substring(0, 100));
+      
+      finishExtraction();
+    } catch (error) {
+      console.error("Error reading text file:", error);
+      showToastMessage("Error reading text file");
+      setIsExtracting(false);
+    }
+  };
+
+  const handlePdfFile = async (file) => {
+    showToastMessage("Extracting text from PDF...");
+    
+    try {
+      // Call the API service to extract text from the PDF
+      const result = await extractPdfText(file);
+      
+      // Create content object from the result
+      const content = {
+        type: 'pdf',
+        text: result.data.text,
+        pageCount: result.data.pageCount,
+        timestamp: new Date().toISOString(),
+        fileName: file.name,
+        fileSize: file.size
+      };
+      
+      // Store in state and sessionStorage for persistence
+      setExtractedContent(content);
+      sessionStorage.setItem('extractedContent', JSON.stringify(content));
+      
+      console.log(`Extracted PDF Text (${result.data.pageCount} pages, first 100 chars):`, 
+        result.data.text.substring(0, 100));
+      
+      finishExtraction();
+    } catch (error) {
+      console.error("Error extracting PDF:", error);
+      showToastMessage("Error extracting PDF content: " + error.message);
+      setIsExtracting(false);
+    }
+  };
+
+  const handleImageFiles = async (files) => {
+    showToastMessage("Processing images with OCR...");
+    
+    try {
+      const worker = await createWorker();
+      let combinedText = "";
+      
+      for (let i = 0; i < files.length; i++) {
+        showToastMessage(`Processing image ${i+1} of ${files.length}...`);
+        const { data: { text } } = await worker.recognize(files[i]);
+        combinedText += text + "\n\n";
+      }
+      
+      await worker.terminate();
+      
+      const content = {
+        type: 'ocr',
+        text: combinedText.trim(),
+        timestamp: new Date().toISOString(),
+        imageCount: files.length,
+        fileName: files.length === 1 ? files[0].name : `${files.length} images`
+      };
+      
+      setExtractedContent(content);
+      sessionStorage.setItem('extractedContent', JSON.stringify(content));
+      
+      console.log("Extracted OCR Text (first 100 chars):", combinedText.substring(0, 100));
+      
+      finishExtraction();
+    } catch (error) {
+      console.error("OCR processing error:", error);
+      showToastMessage("Error processing images with OCR");
+      setIsExtracting(false);
+    }
+  };
+
+  const readTextFile = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = (event) => {
+        resolve(event.target.result);
+      };
+      
+      reader.onerror = (error) => {
+        reject(error);
+      };
+      
+      reader.readAsText(file);
+    });
+  };
+
+  const finishExtraction = () => {
+    showToastMessage("Text extraction complete!");
+    setIsExtracting(false);
+    
+    // Clear any existing timer
+    if (extractionTimer !== null) {
+      clearTimeout(extractionTimer);
+    }
+    
+    // Set a 2-second timer before enabling the next button
+    const timer = setTimeout(() => {
+      setExtractionComplete(true);
+      showToastMessage("Ready to continue to next step");
+    }, 2000);
+    
+    setExtractionTimer(timer);
   };
 
   const handleTextExtracted = (text) => {
-    // Store the extracted text instead of displaying it
-    setRecognizedText(text);
-    setExtractedContent({
+    // This handles OCR text extracted in ImageUploader component
+    const content = {
       type: 'ocr',
       text: text,
       timestamp: new Date().toISOString()
-    });
+    };
     
+    setExtractedContent(content);
+    sessionStorage.setItem('extractedContent', JSON.stringify(content));
+    
+    console.log("Extracted OCR Text (from ImageUploader, first 100 chars):", text.substring(0, 100));
+    
+    // Show toast and set timer
     showToastMessage("Text extracted and stored for processing");
+    setIsExtracting(false);
+    
+    // Clear any existing timer
+    if (extractionTimer !== null) {
+      clearTimeout(extractionTimer);
+    }
+    
+    // Set a 2-second timer before enabling the next button
+    const timer = setTimeout(() => {
+      setExtractionComplete(true);
+      showToastMessage("Ready to continue to next step");
+    }, 2000);
+    
+    setExtractionTimer(timer);
   };
+
+  // Clean up the timer on unmount
+  useEffect(() => {
+    return () => {
+      if (extractionTimer !== null) {
+        clearTimeout(extractionTimer);
+      }
+    };
+  }, [extractionTimer]);
 
   const handleStyleSelect = (style) => {
     setSelectedStyle(style);
@@ -174,13 +429,69 @@ export default function CreatePage() {
     });
   };
 
-  const handlePublish = () => {
-    showToastMessage("Module published successfully");
-    
-    // Redirect to dashboard after a delay
-    setTimeout(() => {
-      router.push("/dashboard");
-    }, 2000);
+  const handlePublish = async () => {
+    try {
+      setSavingReed(true);
+      setSaveError(null);
+      
+      // Parse the JSON string back to an object if needed
+      let dialogueContent;
+      try {
+        dialogueContent = dialogueData || JSON.parse(storyText);
+      } catch (error) {
+        console.error("Error parsing dialogue data:", error);
+        throw new Error("Invalid dialogue format. Please regenerate the reed.");
+      }
+      
+      // Use authorName from metadata or fallback to anonymous if not provided
+      const authorName = metadata.authorName || "Anonymous";
+      
+      // Prepare the reed data for saving
+      const reedData = {
+        title: metadata.title,
+        description: metadata.description,
+        category: metadata.category,
+        dialogues: dialogueContent.dialogues, // Complete dialogues array
+        userName: user?.displayName || "Anonymous User", // Current user's display name
+        authorName: authorName, // Author name from metadata
+        userId: user?.uid || null, // User ID for querying
+        coverImageUrl: coverImagePreview, // Use the base64 image data directly
+        // Additional metadata can be added here
+        originalContent: extractedContent ? {
+          type: extractedContent.type,
+          timestamp: extractedContent.timestamp,
+          fileName: extractedContent.fileName || null
+        } : null
+      };
+      
+      // Save directly to Firestore
+      const result = await saveReedToFirestore(reedData);
+      
+      showToastMessage("Reed published successfully!");
+      
+      // Save the ID to local storage for recent items
+      const recentReeds = JSON.parse(localStorage.getItem('recentReeds') || '[]');
+      recentReeds.unshift({
+        id: result.reedId,
+        title: metadata.title,
+        category: metadata.category,
+        timestamp: new Date().toISOString(),
+        authorName: authorName
+      });
+      // Keep only the 5 most recent
+      localStorage.setItem('recentReeds', JSON.stringify(recentReeds.slice(0, 5)));
+      
+      // Redirect to dashboard after a delay
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 2000);
+    } catch (error) {
+      console.error("Error publishing reed:", error);
+      setSaveError(error.message);
+      showToastMessage("Error publishing reed: " + (error.message || "Unknown error occurred"));
+    } finally {
+      setSavingReed(false);
+    }
   };
 
   const handleCancel = () => {
@@ -261,11 +572,13 @@ export default function CreatePage() {
   const isNextDisabled = () => {
     switch (currentStep) {
       case 1:
-        return !fileUploaded;
+        return !fileUploaded || isExtracting || !extractionComplete;
       case 2:
         return !selectedStyle;
+      case 3:
+        return isGenerating || !dialogueGenerated || !generationDelayComplete;
       case 4:
-        return !metadata.title || !metadata.description || !metadata.category;
+        return !metadata.title || !metadata.description || !metadata.category || !metadata.authorName;
       default:
         return false;
     }
@@ -354,7 +667,41 @@ export default function CreatePage() {
         showOCR={true}
       />
       
-      {/* We're no longer displaying the recognized text */}
+      {/* Extraction Status */}
+      {isExtracting && (
+        <div className="mt-6 p-4 border rounded-md bg-primary/5 flex items-center gap-3">
+          <RefreshCw className="h-5 w-5 text-primary animate-spin" />
+          <div>
+            <p className="font-medium">Extracting text from your document</p>
+            <p className="text-sm text-muted-foreground">This may take a moment depending on the file size</p>
+          </div>
+        </div>
+      )}
+      
+      {extractedContent && !isExtracting && (
+        <div className="mt-6 p-4 border rounded-md bg-green-50 dark:bg-green-900/10">
+          <div className="flex items-center gap-2 mb-2">
+            <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
+            <p className="font-medium text-green-600 dark:text-green-400">
+              Text extraction complete
+            </p>
+          </div>
+          
+          <p className="text-sm text-muted-foreground mb-2">
+            {extractionComplete ? 
+              "You can now proceed to the next step." : 
+              "Please wait a moment before continuing..."}
+          </p>
+          
+          <div className="bg-black/5 dark:bg-white/5 p-2 rounded-md max-h-32 overflow-y-auto text-sm font-mono">
+            <p className="text-xs">Preview:</p>
+            <p className="whitespace-pre-wrap">
+              {extractedContent.text.substring(0, 200)}
+              {extractedContent.text.length > 200 ? "..." : ""}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -626,6 +973,21 @@ export default function CreatePage() {
               </div>
               
               <div>
+                <label htmlFor="authorName" className="block text-sm font-medium mb-1">
+                  Author Name
+                </label>
+                <input
+                  id="authorName"
+                  name="authorName"
+                  type="text"
+                  value={metadata.authorName}
+                  onChange={handleMetadataChange}
+                  placeholder=""
+                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              
+              <div>
                 <label htmlFor="description" className="block text-sm font-medium mb-1">
                   Description
                 </label>
@@ -644,20 +1006,62 @@ export default function CreatePage() {
                   Category
                 </label>
                 <div className="relative">
-                  <select
-                    id="category"
-                    name="category"
-                    value={metadata.category}
-                    onChange={handleMetadataChange}
-                    className="w-full appearance-none rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary pr-10"
-                  >
-                    {categories.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                  <Tag className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  {/* Desktop Select - Hidden on Mobile */}
+                  <div className="hidden md:block">
+                    <select
+                      id="category"
+                      name="category"
+                      value={metadata.category}
+                      onChange={handleMetadataChange}
+                      className="w-full appearance-none rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary pr-10"
+                    >
+                      {categories.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                    <Tag className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                  
+                  {/* Mobile Custom Dropdown */}
+                  <div className="md:hidden">
+                    <button
+                      type="button"
+                      onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                      className="flex items-center justify-between w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <span>{metadata.category}</span>
+                      <Tag className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                    
+                    {isCategoryDropdownOpen && (
+                      <div className="absolute z-10 w-full mt-1 rounded-md border border-input bg-background shadow-lg max-h-60 overflow-auto">
+                        <ul className="py-1 text-sm">
+                          {categories.map((category) => (
+                            <li key={category}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const e = {
+                                    target: {
+                                      name: 'category',
+                                      value: category
+                                    }
+                                  };
+                                  handleMetadataChange(e);
+                                  setIsCategoryDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-3 py-2 hover:bg-accent ${metadata.category === category ? 'bg-accent' : ''}`}
+                              >
+                                {category}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -696,10 +1100,25 @@ export default function CreatePage() {
                 isNextDisabled() || (currentStep === 2 && isGenerating) ? "opacity-50 cursor-not-allowed" : "hover:bg-primary/90 hover:shadow-md"
               }`}
             >
-              {currentStep === 2 && isGenerating ? (
+              {currentStep === 1 && isExtracting ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Extracting...
+                </>
+              ) : currentStep === 1 && !extractionComplete && extractedContent ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Please wait...
+                </>
+              ) : currentStep === 2 && isGenerating ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                   Generating...
+                </>
+              ) : currentStep === 3 && dialogueGenerated && !generationDelayComplete ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Please wait...
                 </>
               ) : (
                 <>
@@ -711,13 +1130,22 @@ export default function CreatePage() {
           ) : (
             <button
               onClick={handlePublish}
-              disabled={isNextDisabled()}
+              disabled={isNextDisabled() || savingReed}
               className={`flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors ${
-                isNextDisabled() ? "opacity-50 cursor-not-allowed" : "hover:bg-primary/90 hover:shadow-md"
+                isNextDisabled() || savingReed ? "opacity-50 cursor-not-allowed" : "hover:bg-primary/90 hover:shadow-md"
               }`}
             >
-              Publish
-              <BookCopy className="ml-2 h-4 w-4" />
+              {savingReed ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Publishing...
+                </>
+              ) : (
+                <>
+                  Publish
+                  <BookCopy className="ml-2 h-4 w-4" />
+                </>
+              )}
             </button>
           )}
         </div>

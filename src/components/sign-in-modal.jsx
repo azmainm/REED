@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import { useAuth } from "./auth-context";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "./toast";
 
 export default function SignInModal({ isOpen, onClose }) {

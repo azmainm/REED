@@ -1,7 +1,7 @@
 import "./globals.css";
 import { Poppins } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
-import { AuthProvider } from "@/components/auth-context";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { ToastProvider } from "@/components/toast";
 import Navbar from "@/components/navbar";
 

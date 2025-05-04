@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useTheme } from "./theme-provider";
-import { useAuth } from "./auth-context";
+import { useAuth } from "@/contexts/AuthContext";
 import { Moon, Sun, Menu, ChevronDown, User, Settings, LogOut } from "lucide-react";
 import AvatarDisplay from "./avatar-display";
 
@@ -30,6 +30,17 @@ export default function NavbarAuth({ toggleSidebar }) {
           src={user.profilePicture} 
           alt={user.name || "User"} 
           className="h-8 w-8 rounded-full object-cover"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = '';
+            // Fallback to initials or user icon if the image fails to load
+            if (user?.name) {
+              const initials = user.name.split(" ").map(n => n[0]).join("").toUpperCase();
+              e.target.parentElement.innerHTML = `<div class="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center"><span class="text-xs font-bold text-primary">${initials}</span></div>`;
+            } else {
+              e.target.parentElement.innerHTML = `<div class="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-primary"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>`;
+            }
+          }}
         />
       );
     } else if (user?.avatar_id) {

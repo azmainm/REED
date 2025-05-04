@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
-import { useAuth } from "@/components/auth-context";
+import { X, Check } from "lucide-react";
+import AvatarDisplay from "./avatar-display";
+import { useAuth } from "@/contexts/AuthContext";
 import { doc, updateDoc } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 
@@ -20,7 +21,7 @@ const avatarOptions = [
 ];
 
 export default function AvatarSelectionModal({ isOpen, onClose, currentAvatarId, isFirstTime = false }) {
-  const { user } = useAuth();
+  const { user, updateAvatarId } = useAuth();
   const [selectedAvatarId, setSelectedAvatarId] = useState(currentAvatarId || null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
@@ -43,15 +44,16 @@ export default function AvatarSelectionModal({ isOpen, onClose, currentAvatarId,
 
     setIsSubmitting(true);
     try {
-      const userDocRef = doc(firestore, "users", user.email);
-      await updateDoc(userDocRef, {
-        avatar_id: selectedAvatarId
-      });
-
-      setToastMessage("Avatar updated successfully!");
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
-      onClose(selectedAvatarId);
+      const result = await updateAvatarId(selectedAvatarId);
+      
+      if (result.success) {
+        setToastMessage("Avatar updated successfully!");
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+        onClose(selectedAvatarId);
+      } else {
+        throw new Error("Failed to update avatar");
+      }
     } catch (error) {
       console.error("Error updating avatar:", error);
       setToastMessage("Failed to update avatar. Please try again.");

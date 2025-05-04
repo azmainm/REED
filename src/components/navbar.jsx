@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTheme } from "./theme-provider";
-import { useAuth } from "./auth-context";
+import { useAuth } from "@/contexts/AuthContext";
 import { Moon, Sun, Menu, X } from "lucide-react";
 import SignInModal from "./sign-in-modal";
 import { useRouter } from "next/navigation";
@@ -14,6 +14,8 @@ export default function Navbar() {
   const { user } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
+  const mobileMenuRef = useRef(null);
+  const menuButtonRef = useRef(null);
   const router = useRouter();
 
   // Close mobile menu when navigating
@@ -26,6 +28,26 @@ export default function Navbar() {
     handleNavigation();
     router.push('/dashboard');
   };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        isMenuOpen && 
+        mobileMenuRef.current && 
+        !mobileMenuRef.current.contains(event.target) &&
+        menuButtonRef.current &&
+        !menuButtonRef.current.contains(event.target)
+      ) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isMenuOpen]);
 
   return (
     <>
@@ -87,6 +109,7 @@ export default function Navbar() {
 
           {/* Mobile Menu Button */}
           <button
+            ref={menuButtonRef}
             className="flex items-center justify-center rounded-md p-2 md:hidden"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
@@ -95,8 +118,15 @@ export default function Navbar() {
         </div>
 
         {/* Mobile Navigation */}
-        {isMenuOpen && (
-          <div className="container mx-auto px-4 pb-4 pt-2 md:hidden">
+        <div 
+          ref={mobileMenuRef}
+          className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
+            isMenuOpen 
+              ? "max-h-64 opacity-100" 
+              : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="container mx-auto px-4 py-2">
             <nav className="flex flex-col space-y-3">
               <Link 
                 href="#features" 
@@ -155,7 +185,7 @@ export default function Navbar() {
               </div>
             </nav>
           </div>
-        )}
+        </div>
       </header>
 
       {/* Sign In Modal */}
