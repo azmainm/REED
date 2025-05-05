@@ -112,6 +112,12 @@
   body {
     @apply bg-background text-foreground font-sans;
   }
+  .dark body {
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 30px 30px;
+    background-position: 0 0;
+  }
 }
 
 /* Grid background pattern */

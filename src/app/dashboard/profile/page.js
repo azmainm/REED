@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Pencil, BookOpen, Star, X, Edit } from "lucide-react";
+import { Pencil, BookOpen, Star, X, Edit, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { doc, getDoc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, getDoc, updateDoc, collection, query, where, getDocs, deleteDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { firestore, storage } from "@/lib/firebase";
 import AvatarSelectionModal from "@/components/avatar-selection-modal";
@@ -34,6 +34,8 @@ export default function ProfilePage() {
   const [favoriteReeds, setFavoriteReeds] = useState([]);
   const [showReedEditModal, setShowReedEditModal] = useState(false);
   const [currentReedEdit, setCurrentReedEdit] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [reedToDelete, setReedToDelete] = useState(null);
 
   // Initialize form data from user if available
   useEffect(() => {
@@ -391,6 +393,33 @@ export default function ProfilePage() {
     }
   };
 
+  const handleDeleteReed = (reed) => {
+    setReedToDelete(reed);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!reedToDelete || !reedToDelete.id) return;
+    
+    try {
+      const reedDocRef = doc(firestore, "reeds", reedToDelete.id);
+      await deleteDoc(reedDocRef);
+      
+      // Update local state
+      setUserReeds(userReeds.filter(r => r.id !== reedToDelete.id));
+      
+      setShowDeleteModal(false);
+      setToastMessage("Reed deleted successfully!");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (error) {
+      console.error("Error deleting reed:", error);
+      setToastMessage("Failed to delete reed. Please try again.");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    }
+  };
+
   return (
     <div>
       {/* Profile Card */}
@@ -514,6 +543,7 @@ export default function ProfilePage() {
                 story={reed} 
                 isEditable={true}
                 onEdit={() => handleEditReed(reed)}
+                onDelete={() => handleDeleteReed(reed)}
               />
             ))
           ) : (
@@ -756,6 +786,44 @@ export default function ProfilePage() {
         </div>
       )}
       
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && reedToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Delete Reed</h2>
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="rounded-full p-1 hover:bg-accent"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <p className="text-muted-foreground mb-4">
+              Are you sure you want to delete this reed? This action cannot be undone.
+            </p>
+            
+            <div className="flex justify-end space-x-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="rounded-lg border border-border bg-transparent px-4 py-2 text-sm font-medium hover:bg-accent"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                className="rounded-lg bg-gradient-to-r from-red-500 to-rose-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 shadow-sm"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Toast Notification */}
       {showToast && (
         <div className="fixed bottom-4 right-4 rounded-lg bg-primary p-4 text-white shadow-lg animation-fade-in">
@@ -767,12 +835,20 @@ export default function ProfilePage() {
 }
 
 // Story Card Component
-function StoryCard({ story, isFavorite = false, isEditable = false, onEdit }) {
+function StoryCard({ story, isFavorite = false, isEditable = false, onEdit, onDelete }) {
   // Function to handle clicks on the edit button without navigating
   const handleEditClick = (e) => {
     if (onEdit) {
       e.stopPropagation();
       onEdit();
+    }
+  };
+  
+  // Function to handle clicks on the delete button without navigating
+  const handleDeleteClick = (e) => {
+    if (onDelete) {
+      e.stopPropagation();
+      onDelete();
     }
   };
   
@@ -793,7 +869,7 @@ function StoryCard({ story, isFavorite = false, isEditable = false, onEdit }) {
   };
   
   return (
-    <div className="card-hover rounded-lg border border-border bg-card overflow-hidden shadow-sm">
+    <div className="card-hover rounded-lg border border-border bg-card overflow-hidden shadow-sm relative">
       <div className="aspect-video bg-muted/50 relative">
         {story.coverImageUrl ? (
           story.coverImageUrl.startsWith('data:') ? (
@@ -826,6 +902,18 @@ function StoryCard({ story, isFavorite = false, isEditable = false, onEdit }) {
           </div>
         )}
       </div>
+      
+      {/* Delete button in the top-right corner of the card */}
+      {isEditable && (
+        <button
+          onClick={handleDeleteClick}
+          className="absolute top-2 right-2 rounded-full bg-red-100 p-1.5 text-red-500 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-800/40 z-10 transition-colors"
+          aria-label="Delete reed"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
+      
       <div className="p-4">
         <div className="text-xs font-medium text-primary mb-2">{story.category || "Uncategorized"}</div>
         <h3 className="text-lg font-semibold mb-2">{story.title}</h3>
