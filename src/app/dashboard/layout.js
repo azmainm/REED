@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X, Home, LayoutDashboard, User, LogOut, Plus } from "lucide-react";
+import { Menu, X, Home, LayoutDashboard, User, LogOut, Plus, Trophy, MessageSquare } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/components/auth-context";
 import AvatarSelectionModal from "@/components/avatar-selection-modal";
@@ -130,12 +130,28 @@ export default function DashboardLayout({ children }) {
                 Dashboard
               </Link>
               <Link
+                href="/dashboard/leaderboard"
+                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard/leaderboard') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
+                onClick={handleNavigation}
+              >
+                <Trophy className="mr-2 h-5 w-5" />
+                Leaderboard
+              </Link>
+              <Link
                 href="/dashboard/profile"
                 className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard/profile') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
                 onClick={handleNavigation}
               >
                 <User className="mr-2 h-5 w-5" />
                 Profile
+              </Link>
+              <Link
+                href="/dashboard/feedback"
+                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard/feedback') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
+                onClick={handleNavigation}
+              >
+                <MessageSquare className="mr-2 h-5 w-5" />
+                Feedback
               </Link>
               {/* <button
                 onClick={logOut}
@@ -188,12 +204,28 @@ export default function DashboardLayout({ children }) {
                 Dashboard
               </Link>
               <Link
+                href="/dashboard/leaderboard"
+                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard/leaderboard') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
+                onClick={handleNavigation}
+              >
+                <Trophy className="mr-2 h-5 w-5" />
+                Leaderboard
+              </Link>
+              <Link
                 href="/dashboard/profile"
                 className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard/profile') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
                 onClick={handleNavigation}
               >
                 <User className="mr-2 h-5 w-5" />
                 Profile
+              </Link>
+              <Link
+                href="/dashboard/feedback"
+                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard/feedback') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
+                onClick={handleNavigation}
+              >
+                <MessageSquare className="mr-2 h-5 w-5" />
+                Feedback
               </Link>
               
               {/* <button
