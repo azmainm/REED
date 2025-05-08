@@ -30,8 +30,6 @@ import {
   generateQuizQuestions 
 } from "@/lib/api-service";
 import { useAuth } from "@/contexts/AuthContext";
-import { doc, updateDoc, increment } from "firebase/firestore";
-import { firestore } from "@/lib/firebase";
 
 // List of categories
 const categories = ["Fiction", "Biographies", "Business", "Finance", "Philosophy", "Ethics", "Logic", "Politics", "Communication", "Science", "Mathematics"];
@@ -492,12 +490,6 @@ export default function CreatePage() {
       const result = await saveReedToFirestore(reedData);
       
       showToastMessage("Reed published successfully!");
-      
-      // Award 30 XP for creating a reed
-      if (user?.email) {
-        const userDocRef = doc(firestore, "users", user.email);
-        await updateDoc(userDocRef, { xp: increment(30) });
-      }
       
       // Save to recent reeds
       const recentReeds = JSON.parse(localStorage.getItem('recentReeds') || '[]');

@@ -229,11 +229,37 @@ export function formatDialogue(dialogueText) {
       content: dialogueText.trim()
     });
   }
-  
+
+  // Flatten any stringified dialogue arrays
+  let flatDialogue = [];
+  for (const entry of formattedDialogue) {
+    if (
+      typeof entry.content === 'string' &&
+      entry.content.trim().startsWith('{') &&
+      entry.content.includes('"dialogues"')
+    ) {
+      try {
+        const parsed = JSON.parse(entry.content);
+        if (Array.isArray(parsed.dialogues)) {
+          for (const d of parsed.dialogues) {
+            flatDialogue.push({
+              speaker: d.speaker ? d.speaker.toLowerCase() : 'teacher',
+              content: d.text || d.content || ''
+            });
+          }
+          continue;
+        }
+      } catch (e) {
+        // Not a valid JSON, just push as is
+      }
+    }
+    flatDialogue.push(entry);
+  }
+
   return {
     title: "Interactive Dialogue",
     description: "A conversation based on the extracted text",
-    dialogues: formattedDialogue
+    dialogues: flatDialogue
   };
 }
 
