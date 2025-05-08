@@ -178,7 +178,7 @@ export default function ProfilePage() {
         });
       }
       
-      setFavoriteReeds(favoritesData);
+      setFavoriteReeds(favoritesData.filter(reed => !reed.isPrivate));
     } catch (error) {
       console.error("Error fetching favorite reeds:", error);
       setFavoriteReeds([]);
