@@ -42,10 +42,10 @@ export default function Dashboard() {
         
         const reedsCollection = collection(firestore, "reeds");
         
-        // Get all published reeds without requiring composite index
+        // Get all public reeds
         const fallbackQuery = query(
           reedsCollection,
-          where("isPublished", "==", true)
+          where("isPrivate", "==", false)
         );
         
         const fallbackSnapshot = await getDocs(fallbackQuery);

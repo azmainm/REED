@@ -123,6 +123,10 @@ export default function Home() {
                 <ArrowRight className="h-5 w-5 text-primary mr-2 mt-0.5 flex-shrink-0" />
                 <span>Learn by engaging, not scrolling or turning pages.</span>
               </li>
+              <li className="flex items-start">
+                <ArrowRight className="h-5 w-5 text-primary mr-2 mt-0.5 flex-shrink-0" />
+                <span>Compete on the leaderboard — ace quizzes to earn XP and climb the ranks!</span>
+              </li>
             </ul>
           </div>
           
@@ -144,6 +148,10 @@ export default function Home() {
               <li className="flex items-start">
                 <span className="text-primary mr-2 flex-shrink-0">🛡</span>
                 <span>Choose to keep it private or publish to the world.</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-primary mr-2 flex-shrink-0">📚</span>
+                <span>Transform dry academic or official documents into engaging interactive stories for personal learning.</span>
               </li>
               <li className="flex items-start">
                 <span className="text-primary mr-2 flex-shrink-0">📈</span>

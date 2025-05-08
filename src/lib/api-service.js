@@ -321,5 +321,33 @@ export async function wakeUpBackend() {
 }
 
 /**
+ * Generate quiz questions from dialogue text
+ * @param {string} dialogueText - The dialogue text to generate questions from
+ * @returns {Promise<Object>} The generated quiz questions
+ */
+export const generateQuizQuestions = async (dialogueText) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/llm/generate-quiz`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ dialogueText }),
+    });
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to generate quiz questions');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error generating quiz questions:', error);
+    throw error;
+  }
+};
+
+/**
  * Additional API methods can be added here
  */ 

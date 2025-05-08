@@ -26,7 +26,8 @@ import {
   formatDialogue, 
   dialogueToJsonString, 
   extractPdfText, 
-  saveReedToFirestore 
+  saveReedToFirestore,
+  generateQuizQuestions 
 } from "@/lib/api-service";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -74,6 +75,10 @@ export default function CreatePage() {
   const [generationDelayComplete, setGenerationDelayComplete] = useState(false);
   const [generationDelayTimer, setGenerationDelayTimer] = useState(null);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [quizQuestions, setQuizQuestions] = useState([]);
+  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
+  const [quizGenerated, setQuizGenerated] = useState(false);
+  const [isPublic, setIsPublic] = useState(true);
 
   // Detect device type on component mount
   useEffect(() => {
@@ -146,6 +151,39 @@ export default function CreatePage() {
       }
     };
   }, [currentStep, selectedStyle, extractedContent, dialogueGenerated, generationDelayTimer]);
+
+  // Add useEffect for quiz generation when entering step 4
+  useEffect(() => {
+    const generateQuizOnStep4 = async () => {
+      if (currentStep === 4 && dialogueData && !quizGenerated) {
+        try {
+          setIsGeneratingQuiz(true);
+          
+          // Convert dialogue data to text format
+          const dialogueText = dialogueData.dialogues
+            .map(d => `${d.speaker === 'teacher' ? 'Teacher' : 'Student'}: ${d.content}`)
+            .join('\n\n');
+          
+          const result = await generateQuizQuestions(dialogueText);
+          
+          if (result.success) {
+            setQuizQuestions(result.questions);
+            setQuizGenerated(true);
+            showToastMessage('Quiz questions generated successfully');
+          } else {
+            throw new Error(result.error || 'Failed to generate quiz questions');
+          }
+        } catch (error) {
+          console.error('Error generating quiz:', error);
+          showToastMessage('Error generating quiz: ' + error.message);
+        } finally {
+          setIsGeneratingQuiz(false);
+        }
+      }
+    };
+    
+    generateQuizOnStep4();
+  }, [currentStep, dialogueData, quizGenerated]);
 
   const handleFilesSelected = async (files) => {
     if (files.length === 0) {
@@ -430,30 +468,18 @@ export default function CreatePage() {
       setSavingReed(true);
       setSaveError(null);
       
-      // Parse the JSON string back to an object if needed
-      let dialogueContent;
-      try {
-        dialogueContent = dialogueData || JSON.parse(storyText);
-      } catch (error) {
-        console.error("Error parsing dialogue data:", error);
-        throw new Error("Invalid dialogue format. Please regenerate the reed.");
-      }
-      
-      // Use authorName from metadata or fallback to anonymous if not provided
-      const authorName = metadata.authorName || "Anonymous";
-      
-      // Prepare the reed data for saving
       const reedData = {
         title: metadata.title,
         description: metadata.description,
         category: metadata.category,
-        dialogues: dialogueContent.dialogues, // Complete dialogues array
-        userName: user?.displayName || "Anonymous User", // Current user's display name
-        authorName: authorName, // Author name from metadata
-        userId: user?.uid || null, // User ID for querying
-        coverImageUrl: coverImagePreview, // Use the base64 image data directly
-        style: selectedStyle, // Add the selected teaching style
-        // Additional metadata can be added here
+        dialogues: dialogueData.dialogues,
+        quizQuestions,
+        isPrivate: !isPublic,
+        userName: user?.displayName || "Anonymous User",
+        authorName: metadata.authorName || "Anonymous",
+        userId: user?.uid || null,
+        coverImageUrl: coverImagePreview,
+        style: selectedStyle,
         originalContent: extractedContent ? {
           type: extractedContent.type,
           timestamp: extractedContent.timestamp,
@@ -461,24 +487,21 @@ export default function CreatePage() {
         } : null
       };
       
-      // Save directly to Firestore
       const result = await saveReedToFirestore(reedData);
       
       showToastMessage("Reed published successfully!");
       
-      // Save the ID to local storage for recent items
+      // Save to recent reeds
       const recentReeds = JSON.parse(localStorage.getItem('recentReeds') || '[]');
       recentReeds.unshift({
         id: result.reedId,
         title: metadata.title,
         category: metadata.category,
         timestamp: new Date().toISOString(),
-        authorName: authorName
+        authorName: metadata.authorName || "Anonymous"
       });
-      // Keep only the 5 most recent
       localStorage.setItem('recentReeds', JSON.stringify(recentReeds.slice(0, 5)));
       
-      // Redirect to dashboard after a delay
       setTimeout(() => {
         router.push("/dashboard");
       }, 1000);
@@ -574,6 +597,8 @@ export default function CreatePage() {
       case 3:
         return isGenerating || !dialogueGenerated || !generationDelayComplete;
       case 4:
+        return isGeneratingQuiz || !quizGenerated;
+      case 5:
         return !metadata.title || !metadata.description || !metadata.category || !metadata.authorName;
       default:
         return false;
@@ -791,305 +816,396 @@ export default function CreatePage() {
     </div>
   );
 
-  return (
+  // Add quiz section render function
+  const renderQuizSection = () => (
     <div>
-      {/* Step Indicator */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Create Interactive Reed</h1>
-          <div className="text-sm text-muted-foreground">
-            Step {currentStep} of 4
+      <h2 className="text-xl font-bold mb-4">Quiz Questions</h2>
+      <p className="text-muted-foreground mb-6">
+        Review and edit the generated quiz questions based on the dialogue.
+      </p>
+      
+      {isGeneratingQuiz ? (
+        <div className="flex items-center justify-center p-8">
+          <div className="flex flex-col items-center gap-2">
+            <RefreshCw className="h-8 w-8 text-primary animate-spin" />
+            <p className="text-sm text-muted-foreground">Generating quiz questions...</p>
           </div>
         </div>
-        
-        <div className="flex items-center">
-          {[1, 2, 3, 4].map((step) => (
-            <div 
-              key={step} 
-              className="flex-1 flex flex-col items-center"
-            >
-              <div className={`h-2 w-full mb-2 rounded-full ${
-                step < currentStep
-                  ? "bg-primary"
-                  : step === currentStep
-                  ? "bg-primary/50"
-                  : "bg-muted"
-              }`} />
-              <div className={`text-xs font-medium ${
-                step === currentStep ? "text-primary" : "text-muted-foreground"
-              }`}>
-                {step === 1 && "Upload"}
-                {step === 2 && "Style"}
-                {step === 3 && "Review"}
-                {step === 4 && "Publish"}
+      ) : quizQuestions.length > 0 ? (
+        <div className="space-y-6">
+          {quizQuestions.map((question, index) => (
+            <div key={index} className="p-4 border rounded-lg">
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">
+                  Question {index + 1}
+                </label>
+                <input
+                  type="text"
+                  value={question.question}
+                  onChange={(e) => {
+                    const newQuestions = [...quizQuestions];
+                    newQuestions[index].question = e.target.value;
+                    setQuizQuestions(newQuestions);
+                  }}
+                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                {question.options.map((option, optionIndex) => (
+                  <div key={optionIndex} className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name={`question-${index}`}
+                      checked={question.correctAnswer === option}
+                      onChange={() => {
+                        const newQuestions = [...quizQuestions];
+                        newQuestions[index].correctAnswer = option;
+                        setQuizQuestions(newQuestions);
+                      }}
+                      className="h-4 w-4"
+                    />
+                    <input
+                      type="text"
+                      value={option}
+                      onChange={(e) => {
+                        const newQuestions = [...quizQuestions];
+                        newQuestions[index].options[optionIndex] = e.target.value;
+                        setQuizQuestions(newQuestions);
+                      }}
+                      className="flex-1 rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+                    />
+                  </div>
+                ))}
               </div>
             </div>
           ))}
         </div>
-      </div>
-      
-      {/* Step Content */}
-      <div className="rounded-lg border border-border bg-card p-6 shadow-md mb-8">
-        {/* Step 1: Upload */}
-        {currentStep === 1 && renderUploadSection()}
-        
-        {/* Step 2: Style Selection */}
-        {currentStep === 2 && (
-          <div>
-            <h2 className="text-xl font-bold mb-4">Select Style</h2>
-            <p className="text-muted-foreground mb-6">
-              Choose a style for your interactive reed.
-            </p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div 
-                className={`rounded-lg border p-4 cursor-pointer transition-all ${
-                  selectedStyle === "Platonic"
-                    ? "border-primary bg-primary/5 ring-2 ring-primary/20 scale-[1.02]"
-                    : "border-border hover:border-primary/50"
-                }`}
-                onClick={() => handleStyleSelect("Platonic")}
-              >
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                    <BookText className="h-5 w-5 text-primary" />
-                  </div>
-                  
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold">Platonic</h3>
-                      {selectedStyle === "Platonic" && (
-                        <Check className="h-4 w-4 text-primary" />
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Traditional dialogue format with clear explanations and guided learning.
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
-              <div 
-                className={`rounded-lg border p-4 cursor-pointer transition-all ${
-                  selectedStyle === "Socratic"
-                    ? "border-primary bg-primary/5 ring-2 ring-primary/20 scale-[1.02]"
-                    : "border-border hover:border-primary/50"
-                }`}
-                onClick={() => handleStyleSelect("Socratic")}
-              >
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Sparkles className="h-5 w-5 text-primary" />
-                  </div>
-                  
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold">Socratic</h3>
-                      {selectedStyle === "Socratic" && (
-                        <Check className="h-4 w-4 text-primary" />
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Question-based approach that guides learners to discover answers through reflection.
-                    </p>
-                  </div>
-                </div>
-              </div>
+      ) : (
+        <div className="text-center p-8 text-muted-foreground">
+          No quiz questions generated yet.
+        </div>
+      )}
+    </div>
+  );
 
-              <div 
-                className={`rounded-lg border p-4 cursor-pointer transition-all ${
-                  selectedStyle === "Story"
-                    ? "border-primary bg-primary/5 ring-2 ring-primary/20 scale-[1.02]"
-                    : "border-border hover:border-primary/50"
-                }`}
-                onClick={() => handleStyleSelect("Story")}
-              >
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                    <BookOpen className="h-5 w-5 text-primary" />
-                  </div>
-                  
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold">Story</h3>
-                      {selectedStyle === "Story" && (
-                        <Check className="h-4 w-4 text-primary" />
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Narrative approach where concepts are explained through engaging stories and examples.
-                    </p>
-                  </div>
+  // Update the publish section to include privacy toggle
+  const renderPublishSection = () => (
+    <div>
+      <h2 className="text-xl font-bold mb-4">Add Metadata & Publish</h2>
+      <p className="text-muted-foreground mb-6">
+        Add final details to your reed before publishing.
+      </p>
+      
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Cover Image
+          </label>
+          <div 
+            className="border-2 border-dashed border-border rounded-lg p-4 text-center mb-2 cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors h-40 flex items-center justify-center"
+            onClick={() => coverImageInputRef.current?.click()}
+            onDrop={handleCoverImageDrop}
+            onDragOver={handleCoverImageDragOver}
+          >
+            <input
+              type="file"
+              ref={coverImageInputRef}
+              onChange={handleCoverImageUpload}
+              className="hidden"
+              accept="image/*"
+            />
+            
+            {coverImagePreview ? (
+              <div className="w-full h-full relative">
+                <img 
+                  src={coverImagePreview} 
+                  alt="Cover" 
+                  className="w-full h-full object-cover rounded-lg"
+                />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 bg-black/30 text-white rounded-lg transition-opacity">
+                  <p>Click to change</p>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
-        
-        {/* Step 3: Story Review */}
-        {currentStep === 3 && renderReviewSection()}
-        
-        {/* Step 4: Metadata & Publish */}
-        {currentStep === 4 && (
-          <div>
-            <h2 className="text-xl font-bold mb-4">Add Metadata & Publish</h2>
-            <p className="text-muted-foreground mb-6">
-              Add final details to your reed before publishing.
-            </p>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Cover Image
-                </label>
-                <div 
-                  className="border-2 border-dashed border-border rounded-lg p-4 text-center mb-2 cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors h-40 flex items-center justify-center"
-                  onClick={() => coverImageInputRef.current?.click()}
-                  onDrop={handleCoverImageDrop}
-                  onDragOver={handleCoverImageDragOver}
-                >
-                  <input
-                    type="file"
-                    ref={coverImageInputRef}
-                    onChange={handleCoverImageUpload}
-                    className="hidden"
-                    accept="image/*"
-                  />
-                  
-                  {coverImagePreview ? (
-                    <div className="w-full h-full relative">
-                      <img 
-                        src={coverImagePreview} 
-                        alt="Cover" 
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 bg-black/30 text-white rounded-lg transition-opacity">
-                        <p>Click to change</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-2">
-                      <Upload className="h-6 w-6 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">
-                        Drag and drop or click to upload a cover image
-                      </p>
-                    </div>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Recommended: 1200 x 630 pixels (16:9 ratio)
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <Upload className="h-6 w-6 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  Drag and drop or click to upload a cover image
                 </p>
               </div>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Recommended: 1200 x 630 pixels (16:9 ratio)
+          </p>
+        </div>
+        
+        <div>
+          <label htmlFor="title" className="block text-sm font-medium mb-1">
+            Title
+          </label>
+          <input
+            id="title"
+            name="title"
+            type="text"
+            value={metadata.title}
+            onChange={handleMetadataChange}
+            className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        
+        <div>
+          <label htmlFor="authorName" className="block text-sm font-medium mb-1">
+            Author Name
+          </label>
+          <input
+            id="authorName"
+            name="authorName"
+            type="text"
+            value={metadata.authorName}
+            onChange={handleMetadataChange}
+            className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        
+        <div>
+          <label htmlFor="description" className="block text-sm font-medium mb-1">
+            Description
+          </label>
+          <textarea
+            id="description"
+            name="description"
+            value={metadata.description}
+            onChange={handleMetadataChange}
+            rows={3}
+            className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        
+        <div>
+          <label htmlFor="category" className="block text-sm font-medium mb-1">
+            Category
+          </label>
+          <div className="relative">
+            {/* Desktop Select */}
+            <div className="hidden md:block">
+              <select
+                id="category"
+                name="category"
+                value={metadata.category}
+                onChange={handleMetadataChange}
+                className="w-full appearance-none rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary pr-10"
+              >
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+              <Tag className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            </div>
+            
+            {/* Mobile Custom Dropdown */}
+            <div className="md:hidden">
+              <button
+                type="button"
+                onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                className="flex items-center justify-between w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <span>{metadata.category}</span>
+                <Tag className="h-4 w-4 text-muted-foreground" />
+              </button>
               
-              <div>
-                <label htmlFor="title" className="block text-sm font-medium mb-1">
-                  Title
-                </label>
-                <input
-                  id="title"
-                  name="title"
-                  type="text"
-                  value={metadata.title}
-                  onChange={handleMetadataChange}
-                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="authorName" className="block text-sm font-medium mb-1">
-                  Author Name
-                </label>
-                <input
-                  id="authorName"
-                  name="authorName"
-                  type="text"
-                  value={metadata.authorName}
-                  onChange={handleMetadataChange}
-                  placeholder=""
-                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium mb-1">
-                  Description
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={metadata.description}
-                  onChange={handleMetadataChange}
-                  rows={3}
-                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="category" className="block text-sm font-medium mb-1">
-                  Category
-                </label>
-                <div className="relative">
-                  {/* Desktop Select - Hidden on Mobile */}
-                  <div className="hidden md:block">
-                    <select
-                      id="category"
-                      name="category"
-                      value={metadata.category}
-                      onChange={handleMetadataChange}
-                      className="w-full appearance-none rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary pr-10"
-                    >
-                      {categories.map((category) => (
-                        <option key={category} value={category}>
+              {isCategoryDropdownOpen && (
+                <div className="absolute z-10 w-full mt-1 rounded-md border border-input bg-background shadow-lg max-h-60 overflow-auto">
+                  <ul className="py-1 text-sm">
+                    {categories.map((category) => (
+                      <li key={category}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const e = {
+                              target: {
+                                name: 'category',
+                                value: category
+                              }
+                            };
+                            handleMetadataChange(e);
+                            setIsCategoryDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 hover:bg-accent ${metadata.category === category ? 'bg-accent' : ''}`}
+                        >
                           {category}
-                        </option>
-                      ))}
-                    </select>
-                    <Tag className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  </div>
-                  
-                  {/* Mobile Custom Dropdown */}
-                  <div className="md:hidden">
-                    <button
-                      type="button"
-                      onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
-                      className="flex items-center justify-between w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <span>{metadata.category}</span>
-                      <Tag className="h-4 w-4 text-muted-foreground" />
-                    </button>
-                    
-                    {isCategoryDropdownOpen && (
-                      <div className="absolute z-10 w-full mt-1 rounded-md border border-input bg-background shadow-lg max-h-60 overflow-auto">
-                        <ul className="py-1 text-sm">
-                          {categories.map((category) => (
-                            <li key={category}>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const e = {
-                                    target: {
-                                      name: 'category',
-                                      value: category
-                                    }
-                                  };
-                                  handleMetadataChange(e);
-                                  setIsCategoryDropdownOpen(false);
-                                }}
-                                className={`w-full text-left px-3 py-2 hover:bg-accent ${metadata.category === category ? 'bg-accent' : ''}`}
-                              >
-                                {category}
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              </div>
+              )}
             </div>
           </div>
-        )}
+        </div>
+
+        {/* Privacy Toggle */}
+        <div className="flex items-center justify-between p-4 border rounded-lg">
+          <div>
+            <h3 className="font-medium">Privacy Setting</h3>
+            <p className="text-sm text-muted-foreground">
+              {isPublic ? 'This reed will be visible to everyone' : 'This reed will only be visible to you'}
+            </p>
+          </div>
+          <button
+            onClick={() => setIsPublic(!isPublic)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              isPublic ? 'bg-primary' : 'bg-muted'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                isPublic ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Add the renderStepIndicator function
+  const renderStepIndicator = () => (
+    <div className="mb-8">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">Create Interactive Reed</h1>
+        <div className="text-sm text-muted-foreground">
+          Step {currentStep} of 5
+        </div>
+      </div>
+      
+      <div className="flex items-center">
+        {[1, 2, 3, 4, 5].map((step) => (
+          <div 
+            key={step} 
+            className="flex-1 flex flex-col items-center"
+          >
+            <div className={`h-2 w-full mb-2 rounded-full ${
+              step < currentStep
+                ? "bg-primary"
+                : step === currentStep
+                ? "bg-primary/50"
+                : "bg-muted"
+            }`} />
+            <div className={`text-xs font-medium ${
+              step === currentStep ? "text-primary" : "text-muted-foreground"
+            }`}>
+              {step === 1 && "Upload"}
+              {step === 2 && "Style"}
+              {step === 3 && "Dialogue"}
+              {step === 4 && "Quiz"}
+              {step === 5 && "Publish"}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // Add the renderStyleSection function
+  const renderStyleSection = () => (
+    <div>
+      <h2 className="text-xl font-bold mb-4">Choose Teaching Style</h2>
+      <p className="text-muted-foreground mb-6">
+        Select a style for your interactive reed. Each style has its own unique approach to teaching.
+      </p>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Platonic Style */}
+        <div 
+          className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+            selectedStyle === 'Platonic' 
+              ? 'border-primary bg-primary/5' 
+              : 'hover:bg-accent'
+          }`}
+          onClick={() => handleStyleSelect('Platonic')}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-medium">Platonic</h3>
+            {selectedStyle === 'Platonic' && (
+              <Check className="h-5 w-5 text-primary" />
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            A structured dialogue that builds understanding through logical progression and clear explanations.
+          </p>
+        </div>
+        
+        {/* Socratic Style */}
+        <div 
+          className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+            selectedStyle === 'Socratic' 
+              ? 'border-primary bg-primary/5' 
+              : 'hover:bg-accent'
+          }`}
+          onClick={() => handleStyleSelect('Socratic')}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-medium">Socratic</h3>
+            {selectedStyle === 'Socratic' && (
+              <Check className="h-5 w-5 text-primary" />
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            A question-based approach that encourages critical thinking and self-discovery.
+          </p>
+        </div>
+        
+        {/* Story Style */}
+        <div 
+          className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+            selectedStyle === 'Story' 
+              ? 'border-primary bg-primary/5' 
+              : 'hover:bg-accent'
+          }`}
+          onClick={() => handleStyleSelect('Story')}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-medium">Story</h3>
+            {selectedStyle === 'Story' && (
+              <Check className="h-5 w-5 text-primary" />
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            A narrative approach that teaches through engaging stories and real-world examples.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Add the renderStepContent function
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return renderUploadSection();
+      case 2:
+        return renderStyleSection();
+      case 3:
+        return renderReviewSection();
+      case 4:
+        return renderQuizSection();
+      case 5:
+        return renderPublishSection();
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div>
+      {renderStepIndicator()}
+      
+      <div className="rounded-lg border border-border bg-card p-6 shadow-md mb-8">
+        {renderStepContent()}
       </div>
       
       {/* Navigation Buttons */}
@@ -1115,12 +1231,12 @@ export default function CreatePage() {
             Cancel
           </button>
           
-          {currentStep < 4 ? (
+          {currentStep < 5 ? (
             <button
               onClick={nextStep}
-              disabled={isNextDisabled() || (currentStep === 2 && isGenerating)}
+              disabled={isNextDisabled()}
               className={`flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors ${
-                isNextDisabled() || (currentStep === 2 && isGenerating) ? "opacity-50 cursor-not-allowed" : "hover:bg-primary/90 hover:shadow-md"
+                isNextDisabled() ? "opacity-50 cursor-not-allowed" : "hover:bg-primary/90 hover:shadow-md"
               }`}
             >
               {currentStep === 1 && isExtracting ? (
@@ -1142,6 +1258,11 @@ export default function CreatePage() {
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                   Please wait...
+                </>
+              ) : currentStep === 4 && isGeneratingQuiz ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Generating Quiz...
                 </>
               ) : (
                 <>
