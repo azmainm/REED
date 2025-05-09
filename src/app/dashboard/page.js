@@ -32,7 +32,38 @@ export default function Dashboard() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Categories
-  const categories = ["All", "Fiction", "Biographies", "Business", "Finance", "Philosophy", "Ethics", "Logic", "Politics", "Communication", "Science", "Mathematics"];
+  const categories = [
+    "All",
+    "Fiction",
+    "Non-Fiction",
+    "Philosophy",
+    "Religion",
+    "Biography",
+    "Finance",
+    "Marketing",
+    "Technology",
+    "Software",
+    "Business",
+    "Research",
+    "Corporate",
+    "Product",
+    "Project",
+    "Education",
+    "Self-Help",
+    "Psychology",
+    "History",
+    "Politics",
+    "Science",
+    "Law",
+    "Health & Wellness",
+    "Career & Skills",
+    "Travel",
+    "Art & Design",
+    "Literature",
+    "Case Studies",
+    "Tutorials & How-To",
+    "Reports & Whitepapers"
+  ];
 
   // Fetch reeds from Firestore
   useEffect(() => {

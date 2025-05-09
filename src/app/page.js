@@ -60,8 +60,8 @@ export default function Home() {
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
           Learn From Stories, <span className="gradient-text">Not Summaries</span>
         </h1>
-        <p className="text-xl text-muted-foreground max-w-3xl mb-10">
-        REED is an AI-powered platform that transforms book chapters and articles into interactive micro-stories — making learning feel like storytelling.
+        <p className="text-xl text-muted-foreground max-w-4xl mb-10">
+        REED turns ordinary content into interactive, AI-powered stories that make learning faster, deeper, and way more engaging.
         </p>
       
         {/* Mockup Image */}
@@ -89,10 +89,20 @@ export default function Home() {
       <section id="features" className="container max-w-6xl px-4 sm:px-6 py-12 md:py-20">
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold mb-4">🧠 What is REED?</h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            REED is a platform where creators turn pages of real books, journals, and articles into interactive, 
-            lesson-driven story experiences — powered by AI, designed for curious minds, and interactive to keep you learning.
-          </p>
+          <div className="max-w-3xl mx-auto text-center">
+            <p>
+              REED transforms books, articles, and academic papers into interactive, story-driven learning experiences.
+            </p>
+            <p className="mt-3">
+              <strong>Powered by AI</strong>, REED makes learning immersive and fun with Quizzes, XP, and Leaderboards. Stories are brought to life by characters who guide you through the material, making even complex or boring topics engaging and easy to follow.
+            </p>
+            <p className="mt-3">
+              <strong>Creators</strong> can upload and convert content into interactive stories, told by characters, to share with the world.
+            </p>
+            <p className="mt-3">
+              Users can also create <strong>private Reeds</strong> for faster, better understanding—without sharing them publicly.
+            </p>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
@@ -169,7 +179,7 @@ export default function Home() {
             <div className="flex flex-col items-center mb-8">
               <Book className="h-16 w-16 text-primary mb-6" />
               <h2 className="text-6xl md:text-7xl font-bold mb-3">
-                <span className={`inline-block tabular-nums transition-transform ${count === 102 ? '' : 'scale-110'}`}>
+                <span className={`inline-block tabular-nums transition-transform ${count === 20 ? '' : 'scale-110'}`}>
                   {count}
                 </span>
                 <span className="ml-4">Books</span>

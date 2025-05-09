@@ -16,7 +16,7 @@ export default function SignInModal({ isOpen, onClose }) {
     try {
       setIsSigningIn(true);
       const user = await signInWithGoogle();
-      showToast(`Welcome ${user.displayName}!`, "success");
+      showToast(`Welcome to Reed!`, "success");
       onClose();
     } catch (error) {
       console.error("Sign-in error:", error);

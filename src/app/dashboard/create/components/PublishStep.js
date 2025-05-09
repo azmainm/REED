@@ -121,7 +121,7 @@ export default function PublishStep({
                 name="category"
                 value={metadata.category}
                 onChange={handleMetadataChange}
-                className="w-full appearance-none rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary pr-10"
+                className="w-full appearance-none rounded-md border border-input bg-white text-black dark:bg-zinc-700 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary pr-10"
               >
                 {categories.map((category) => (
                   <option key={category} value={category}>
@@ -144,7 +144,7 @@ export default function PublishStep({
               </button>
               
               {isCategoryDropdownOpen && (
-                <div className="absolute z-10 w-full mt-1 rounded-md border border-input bg-background shadow-lg max-h-60 overflow-auto">
+                <div className="absolute z-10 w-full mt-1 rounded-md border border-input bg-white text-black dark:bg-zinc-800 dark:text-white shadow-lg max-h-60 overflow-auto">
                   <ul className="py-1 text-sm">
                     {categories.map((category) => (
                       <li key={category}>
@@ -160,7 +160,11 @@ export default function PublishStep({
                             handleMetadataChange(e);
                             setIsCategoryDropdownOpen(false);
                           }}
-                          className={`w-full text-left px-3 py-2 hover:bg-accent ${metadata.category === category ? 'bg-accent' : ''}`}
+                          className={`w-full text-left px-3 py-2 hover:bg-accent hover:text-primary dark:hover:bg-zinc-700 ${
+                            metadata.category === category
+                              ? 'bg-accent text-primary dark:bg-zinc-700 dark:text-primary'
+                              : ''
+                          }`}
                         >
                           {category}
                         </button>
