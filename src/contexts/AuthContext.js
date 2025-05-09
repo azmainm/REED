@@ -110,6 +110,23 @@ export function AuthProvider({ children }) {
       const auth = getAuth();
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
+      
+      // Get the ID token
+      const idToken = await result.user.getIdToken();
+      
+      // Call your API to create a session cookie
+      const response = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ idToken }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create session');
+      }
+      
       router.push('/dashboard');
       return { success: true, user: result.user };
     } catch (error) {
@@ -130,6 +147,12 @@ export function AuthProvider({ children }) {
     try {
       const auth = getAuth();
       await signOut(auth);
+      
+      // Call your API to clear the session cookie
+      await fetch('/api/auth/session', {
+        method: 'DELETE',
+      });
+      
       setUser(null);
       setIsNewUser(false);
       router.push('/');
