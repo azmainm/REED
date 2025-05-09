@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ChevronLeft, Star, Home, ArrowRight, ArrowLeft, AlertCircle, Check, X, Trophy, RefreshCw } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ChevronLeft, Star, Home, ArrowRight, ArrowLeft, AlertCircle, Check, X, Trophy, RefreshCw, Share2, Facebook, Mail, MessageCircle, Link, MessageSquare } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,9 +10,21 @@ import LoadingSpinner from "@/components/loading-spinner";
 import { getFirestore, doc, getDoc, updateDoc, increment, setDoc } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 import AvatarSelectionModal from "@/components/avatar-selection-modal";
+import SignInModal from "@/components/sign-in-modal";
 
 // Import teacher avatar
 import teacherAvatar from "@/assets/avatars/teacher.png";
+
+// SVGs for official logos
+const FacebookSVG = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="12" fill="#1877F2"/><path d="M16.671 15.273l.508-3.31h-3.18v-2.15c0-.906.444-1.79 1.87-1.79h1.447V5.29S15.5 5 14.29 5c-2.42 0-4.004 1.47-4.004 4.13v2.833H7.5v3.31h2.786V21h3.213v-5.727h2.172z" fill="#fff"/></svg>
+);
+const MessengerSVG = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="12" fill="#00B2FF"/><path d="M12 2C6.477 2 2 6.02 2 11.09c0 2.62 1.07 4.98 2.85 6.7V22l2.61-1.44c1.13.31 2.33.48 3.54.48 5.523 0 10-4.02 10-9.09C22 6.02 17.523 2 12 2zm.13 13.09l-2.13-2.28-4.09 2.28 5.09-5.56 2.13 2.28 4.09-2.28-5.09 5.56z" fill="#fff"/></svg>
+);
+const WhatsAppSVG = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="12" fill="#25D366"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.85.504 3.58 1.38 5.07L2 22l5.13-1.36A9.96 9.96 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm5.07 14.07c-.21.59-1.23 1.16-1.7 1.23-.44.07-.99.1-1.6-.1-.37-.12-.85-.28-1.47-.55-2.6-1.13-4.3-3.8-4.43-3.98-.13-.18-1.06-1.41-1.06-2.7 0-1.29.68-1.93.92-2.18.24-.25.52-.31.7-.31.18 0 .36.01.52.01.16 0 .4-.06.62.47.22.53.75 1.84.82 1.98.07.14.11.31.02.5-.09.19-.13.31-.25.48-.12.17-.26.38-.37.51-.12.13-.24.27-.1.53.14.26.62 1.02 1.33 1.65.92.82 1.7 1.08 1.96 1.2.26.12.41.1.56-.06.15-.16.64-.75.81-1 .17-.25.34-.21.57-.13.23.08 1.47.7 1.72.83.25.13.41.19.47.3.06.11.06.63-.15 1.22z" fill="#fff"/></svg>
+);
 
 // Add Quiz component
 const QuizComponent = ({ questions, onComplete, onRetake, hasTakenQuiz, quizAttempts, onFinish }) => {
@@ -210,6 +222,124 @@ const QuizComponent = ({ questions, onComplete, onRetake, hasTakenQuiz, quizAtte
   );
 };
 
+// Update ShareModal component
+const ShareModal = ({ isOpen, onClose, storyUrl, storyTitle }) => {
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const modalRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  const showToastMessage = (message) => {
+    setToastMessage(message);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
+  const shareOptions = [
+    {
+      name: 'Facebook',
+      icon: <FacebookSVG />,
+      onClick: () => {
+        const text = `Check out this story on Reed: ${storyTitle}`;
+        const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(storyUrl)}&quote=${encodeURIComponent(text)}`;
+        window.open(url, '_blank', 'width=600,height=400');
+      }
+    },
+    {
+      name: 'Messenger',
+      icon: <MessengerSVG />,
+      onClick: () => {
+        const text = `Check out this story on Reed: ${storyTitle}`;
+        const url = `https://www.facebook.com/dialog/send?link=${encodeURIComponent(storyUrl)}&quote=${encodeURIComponent(text)}`;
+        window.open(url, '_blank', 'width=600,height=400');
+      }
+    },
+    {
+      name: 'WhatsApp',
+      icon: <WhatsAppSVG />,
+      onClick: () => {
+        const url = `https://wa.me/?text=${encodeURIComponent(`Check out this story on Reed: ${storyTitle}\n${storyUrl}`)}`;
+        window.open(url, '_blank');
+      }
+    },
+    {
+      name: 'Email',
+      icon: <Mail className="w-6 h-6" />,
+      onClick: () => {
+        const subject = `Check out this story on Reed: ${storyTitle}`;
+        const body = `I thought you might enjoy this story:\n\n${storyTitle}\n${storyUrl}`;
+        window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      }
+    },
+    {
+      name: 'Copy Link',
+      icon: <Link className="w-6 h-6" />,
+      onClick: async () => {
+        try {
+          await navigator.clipboard.writeText(storyUrl);
+          showToastMessage("Link copied to clipboard!");
+        } catch (err) {
+          console.error('Failed to copy link:', err);
+          showToastMessage("Failed to copy link");
+        }
+      }
+    }
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div 
+        ref={modalRef}
+        className="bg-background rounded-lg p-6 w-full max-w-md transform transition-all duration-200 ease-out scale-100 hover:scale-[1.02]"
+      >
+        <h2 className="text-xl font-bold mb-4">Share Story</h2>
+        <div className="grid grid-cols-2 gap-4">
+          {shareOptions.map((option) => (
+            <button
+              key={option.name}
+              onClick={option.onClick}
+              className="flex flex-col items-center justify-center p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-all duration-200 ease-out transform hover:scale-105 active:scale-95"
+            >
+              {option.icon}
+              <span className="mt-2 text-sm">{option.name}</span>
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={onClose}
+          className="mt-6 w-full py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors transform hover:scale-[1.02] active:scale-[0.98]"
+        >
+          Close
+        </button>
+      </div>
+
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed bottom-4 right-4 rounded-lg bg-primary p-4 text-white shadow-lg animation-fade-in">
+          {toastMessage}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function StoryPage() {
   const router = useRouter();
   const { id } = useParams();
@@ -225,6 +355,9 @@ export default function StoryPage() {
   const [reedData, setReedData] = useState(null);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [contentReady, setContentReady] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const PREVIEW_DIALOGUE_LIMIT = 4;
 
   // Add quiz-related state
   const [showQuiz, setShowQuiz] = useState(false);
@@ -235,7 +368,10 @@ export default function StoryPage() {
   const [hasTakenQuiz, setHasTakenQuiz] = useState(false);
   const [quizAttempts, setQuizAttempts] = useState(0);
 
-  // Check if user needs to select an avatar
+  // Add this near the top of the component where other state is defined
+  const storyUrl = typeof window !== 'undefined' ? window.location.href : '';
+
+  // Check if user needs to select an avatar (only after login)
   useEffect(() => {
     if (user && !user.avatar_id && !isLoading && !showAvatarModal) {
       setShowAvatarModal(true);
@@ -290,7 +426,11 @@ export default function StoryPage() {
           });
           
           // Only show content if user has an avatar or after they select one
-          setContentReady(user?.avatar_id ? true : false);
+          if (user) {
+            setContentReady(!!user.avatar_id);
+          } else {
+            setContentReady(true);
+          }
         } else {
           throw new Error("Reed not found");
         }
@@ -305,18 +445,17 @@ export default function StoryPage() {
     if (id) {
       fetchReedContent();
     }
-    
-    // Set initial screen width
+  }, [id, user?.email]);
+
+  // Add this effect near the top of the component
+  useEffect(() => {
     setScreenWidth(window.innerWidth);
-    
-    // Update screen width on resize
     const handleResize = () => {
       setScreenWidth(window.innerWidth);
     };
-    
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [id, user?.email]);
+  }, []);
 
   const goToNextDialogue = () => {
     if (currentDialogueIndex < conversation.length - 1) {
@@ -499,12 +638,6 @@ export default function StoryPage() {
     router.push("/dashboard");
   };
 
-  const showToastMessage = (message) => {
-    setToastMessage(message);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
-  };
-
   const isMobile = screenWidth < 768;
 
   // Determine which dialogues to show based on the current index and device
@@ -550,6 +683,20 @@ export default function StoryPage() {
     }
   };
 
+  // Add this function to handle dialogue navigation
+  const handleDialogueNavigation = (direction) => {
+    if (!user && currentDialogueIndex >= PREVIEW_DIALOGUE_LIMIT - 1 && direction === 'next') {
+      setShowLoginPrompt(true);
+      return;
+    }
+
+    if (direction === 'next') {
+      goToNextDialogue();
+    } else {
+      goToPreviousDialogue();
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto py-8 flex items-center justify-center min-h-[80vh]">
@@ -582,8 +729,8 @@ export default function StoryPage() {
   const isFirstDialogue = currentDialogueIndex === 0;
 
   return (
-    <div className="container mx-auto py-4 px-4 md:py-8 md:px-6 min-h-[80vh] flex flex-col">
-      {showAvatarModal && (
+    <div className="container mx-auto py-4 px-4 md:py-8 md:px-6 min-h-[80vh] flex flex-col relative">
+      {showAvatarModal && user && (
         <AvatarSelectionModal
           isOpen={showAvatarModal}
           onClose={handleAvatarModalClose}
@@ -605,17 +752,29 @@ export default function StoryPage() {
                 Back
               </button>
               
-              <button
-                onClick={toggleFavorite}
-                className={`rounded-full p-2 transition-colors ${
-                  isFavorited 
-                    ? "bg-primary/20 text-primary" 
-                    : "bg-transparent hover:bg-accent"
-                }`}
-                aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
-              >
-                <Star className={`h-5 w-5 ${isFavorited ? "fill-primary text-primary" : ""}`} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowShareModal(true)}
+                  className="rounded-full p-2 hover:bg-accent transition-colors"
+                  aria-label="Share story"
+                >
+                  <Share2 className="h-5 w-5" />
+                </button>
+                
+                {user && (
+                  <button
+                    onClick={toggleFavorite}
+                    className={`rounded-full p-2 transition-colors ${
+                      isFavorited 
+                        ? "bg-primary/20 text-primary" 
+                        : "bg-transparent hover:bg-accent"
+                    }`}
+                    aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+                  >
+                    <Star className={`h-5 w-5 ${isFavorited ? "fill-primary text-primary" : ""}`} />
+                  </button>
+                )}
+              </div>
             </div>
             
             {reedData && (
@@ -624,9 +783,22 @@ export default function StoryPage() {
                 <p className="text-muted-foreground">
                   By {reedData.authorName || "Anonymous"} · {reedData.category}
                 </p>
+                {reedData.userName && currentDialogueIndex === 0 && (
+                  <div className="text-xs text-muted-foreground opacity-60 select-none mt-1">
+                    Reed created by {reedData.userName}
+                  </div>
+                )}
               </div>
             )}
           </div>
+          
+          {/* Add ShareModal */}
+          <ShareModal
+            isOpen={showShareModal}
+            onClose={() => setShowShareModal(false)}
+            storyUrl={storyUrl}
+            storyTitle={reedData?.title || "Story"}
+          />
           
           {!showQuiz ? (
             <>
@@ -757,7 +929,7 @@ export default function StoryPage() {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={goToPreviousDialogue}
+                    onClick={() => handleDialogueNavigation('prev')}
                     disabled={isLoading}
                     className={`flex items-center rounded-lg border border-border bg-transparent px-6 py-2.5 text-sm font-medium hover:bg-accent transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
@@ -780,7 +952,7 @@ export default function StoryPage() {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={goToNextDialogue}
+                    onClick={() => handleDialogueNavigation('next')}
                     disabled={isLoading}
                     className={`flex items-center rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:opacity-90 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
@@ -829,19 +1001,13 @@ export default function StoryPage() {
             </div>
           )}
         </>
-      ) : !showAvatarModal ? (
-        <div className="container mx-auto py-8 flex items-center justify-center min-h-[80vh]">
-          <div className="text-center">
-            <p className="mb-4">Please select an avatar to read this reed.</p>
-            <button
-              onClick={() => setShowAvatarModal(true)}
-              className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white"
-            >
-              Choose Avatar
-            </button>
-          </div>
-        </div>
       ) : null}
+
+      {/* Sign In Modal */}
+      <SignInModal
+        isOpen={showLoginPrompt}
+        onClose={() => setShowLoginPrompt(false)}
+      />
     </div>
   );
 } 
