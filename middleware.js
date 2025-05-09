@@ -58,17 +58,15 @@ export async function middleware(request) {
   }
 }
 
-// Configure which paths the middleware should run on
+// Update the matcher configuration
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * 1. /api routes
-     * 2. /_next (Next.js internals)
-     * 3. /_static (inside /public)
-     * 4. /_vercel (Vercel internals)
-     * 5. all root files inside /public (e.g. /favicon.ico)
-     */
-    '/((?!api|_next|_static|_vercel|[\\w-]+\\.\\w+).*)',
-  ],
+    // Match all paths under /dashboard
+    '/dashboard/:path*',
+    // Match all paths under /profile
+    '/profile/:path*',
+    // Match all paths under /settings
+    '/settings/:path*',
+    // Add any other protected paths here
+  ]
 }

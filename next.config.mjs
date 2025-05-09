@@ -6,6 +6,9 @@ const nextConfig = {
   experimental: {
     serverActions: true,
   },
+  middleware: {
+    skipMiddlewareUrlNormalize: true,
+  },
 };
 
 export default nextConfig;

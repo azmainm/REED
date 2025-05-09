@@ -9,8 +9,9 @@ import { useAuth } from "@/components/auth-context";
 import AvatarSelectionModal from "@/components/avatar-selection-modal";
 import Navbar from "@/components/navbar-auth";
 import { wakeUpBackend } from '@/lib/api-service';
+import { withAuth } from '@/components/withAuth';
 
-export default function DashboardLayout({ children }) {
+function DashboardLayout({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const { theme } = useTheme();
@@ -256,4 +257,7 @@ export default function DashboardLayout({ children }) {
       )}
     </div>
   );
-} 
+}
+
+// Wrap the layout with the auth protection
+export default withAuth(DashboardLayout); 
