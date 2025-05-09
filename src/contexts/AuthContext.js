@@ -40,10 +40,12 @@ export function AuthProvider({ children }) {
    */
   useEffect(() => {
     const auth = getAuth();
+    setLoading(true); // Set loading to true before starting auth check
+    
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
-      if (authUser) {
-        // User is signed in - get additional Firestore data
-        try {
+      try {
+        if (authUser) {
+          // User is signed in - get additional Firestore data
           const userDocRef = doc(firestore, "users", authUser.email);
           const userDoc = await getDoc(userDocRef);
           
@@ -81,17 +83,17 @@ export function AuthProvider({ children }) {
             // Flag as new user
             setIsNewUser(true);
           }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-          setUser(authUser);
+        } else {
+          // User is signed out
+          setUser(null);
+          setIsNewUser(false);
         }
-      } else {
-        // User is signed out
+      } catch (error) {
+        console.error("Error in auth state change:", error);
         setUser(null);
-        setIsNewUser(false);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     });
 
     // Clean up the listener on unmount
@@ -110,22 +112,6 @@ export function AuthProvider({ children }) {
       const auth = getAuth();
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
-      
-      // Get the ID token
-      const idToken = await result.user.getIdToken();
-      
-      // Call your API to create a session cookie
-      const response = await fetch('/api/auth/session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ idToken }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to create session');
-      }
       
       router.push('/dashboard');
       return { success: true, user: result.user };
@@ -147,11 +133,6 @@ export function AuthProvider({ children }) {
     try {
       const auth = getAuth();
       await signOut(auth);
-      
-      // Call your API to clear the session cookie
-      await fetch('/api/auth/session', {
-        method: 'DELETE',
-      });
       
       setUser(null);
       setIsNewUser(false);

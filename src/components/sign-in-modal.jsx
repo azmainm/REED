@@ -15,14 +15,9 @@ export default function SignInModal({ isOpen, onClose }) {
   const handleGoogleSignIn = async () => {
     try {
       setIsSigningIn(true);
-      const result = await signInWithGoogle();
-      
-      if (result.success) {
-        showToast(`Welcome ${result.user.displayName}!`, "success");
-        onClose();
-      } else {
-        showToast("Sign-in failed. Please try again.", "error");
-      }
+      const user = await signInWithGoogle();
+      showToast(`Welcome ${user.displayName}!`, "success");
+      onClose();
     } catch (error) {
       console.error("Sign-in error:", error);
       showToast("An error occurred during sign-in.", "error");

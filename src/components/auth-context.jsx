@@ -68,10 +68,10 @@ export function AuthProvider({ children }) {
       setLoading(true);
       const result = await signInWithPopup(auth, googleProvider);
       router.push('/dashboard');
-      return { success: true, user: result.user };
+      return result.user;
     } catch (error) {
       console.error("Error signing in with Google:", error);
-      return { success: false, error };
+      throw error;
     } finally {
       setLoading(false);
     }

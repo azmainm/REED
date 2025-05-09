@@ -20,9 +20,13 @@ export function withAuth(Component) {
       }
     }, [user, loading, router, pathname]);
 
-    // Show nothing while checking authentication
+    // Show loading state while checking authentication
     if (loading) {
-      return null;
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      );
     }
 
     // If no user and not on a story page, don't render the component
