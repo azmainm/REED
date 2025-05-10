@@ -76,7 +76,15 @@ export default function SignInModal({ isOpen, onClose }) {
             </button>
             
             <div className="mt-4 text-center text-sm text-muted-foreground">
-              By signing in, you agree to our Terms of Service and Privacy Policy.
+              By signing in, you agree to our{' '}
+              <a
+                href="/terms-of-service"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline text-primary hover:text-primary/80 transition-colors"
+              >
+                Terms of Service and Privacy Policy
+              </a>.
             </div>
           </div>
         </div>
