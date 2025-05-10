@@ -37,12 +37,12 @@ export default function Home() {
   }, [count]);
   
   useEffect(() => {
-    if (isAnimating && count < 102) {
+    if (isAnimating && count < 20) {
       const timer = setTimeout(() => {
         setCount(prevCount => {
           // Accelerate counter as it goes higher
           const increment = Math.max(1, Math.floor(prevCount / 20));
-          return Math.min(102, prevCount + increment);
+          return Math.min(20, prevCount + increment);
         });
       }, 40);
       

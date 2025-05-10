@@ -11,6 +11,14 @@ import { getFirestore, doc, getDoc, updateDoc, increment, setDoc } from "firebas
 import { firestore } from "@/lib/firebase";
 import AvatarSelectionModal from "@/components/avatar-selection-modal";
 import SignInModal from "@/components/sign-in-modal";
+import {
+  FacebookShareButton,
+  WhatsappShareButton,
+  EmailShareButton,
+  FacebookIcon,
+  WhatsappIcon,
+  EmailIcon,
+} from 'react-share';
 
 // Import teacher avatar
 import teacherAvatar from "@/assets/avatars/teacher.png";
@@ -255,48 +263,40 @@ const ShareModal = ({ isOpen, onClose, storyUrl, storyTitle }) => {
   const shareOptions = [
     {
       name: 'Facebook',
-      icon: <FacebookSVG />,
-      onClick: () => {
-        const text = `Check out this story on Reed: ${storyTitle}`;
-        const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(storyUrl)}&quote=${encodeURIComponent(text)}`;
-        window.open(url, '_blank', 'width=600,height=400');
-      }
-    },
-    {
-      name: 'Messenger',
-      icon: <MessengerSVG />,
-      onClick: () => {
-        const text = `Check out this story on Reed: ${storyTitle}`;
-        const url = `https://www.facebook.com/dialog/send?link=${encodeURIComponent(storyUrl)}&quote=${encodeURIComponent(text)}`;
-        window.open(url, '_blank', 'width=600,height=400');
+      component: FacebookShareButton,
+      icon: FacebookIcon,
+      props: {
+        url: storyUrl,
+        hashtag: '#Reed',
       }
     },
     {
       name: 'WhatsApp',
-      icon: <WhatsAppSVG />,
-      onClick: () => {
-        const url = `https://wa.me/?text=${encodeURIComponent(`Check out this story on Reed: ${storyTitle}\n${storyUrl}`)}`;
-        window.open(url, '_blank');
+      component: WhatsappShareButton,
+      icon: WhatsappIcon,
+      props: {
+        url: storyUrl,
+        title: `Check out this story on Reed: ${storyTitle}`
       }
     },
     {
       name: 'Email',
-      icon: <Mail className="w-6 h-6" />,
-      onClick: () => {
-        const subject = `Check out this story on Reed: ${storyTitle}`;
-        const body = `I thought you might enjoy this story:\n\n${storyTitle}\n${storyUrl}`;
-        window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      component: EmailShareButton,
+      icon: EmailIcon,
+      props: {
+        url: storyUrl,
+        subject: `Check out this story on Reed: ${storyTitle}`,
+        body: `I thought you might enjoy this story:\n\n${storyTitle}\n${storyUrl}`
       }
     },
     {
       name: 'Copy Link',
-      icon: <Link className="w-6 h-6" />,
+      icon: Link,
       onClick: async () => {
         try {
           await navigator.clipboard.writeText(storyUrl);
           showToastMessage("Link copied to clipboard!");
         } catch (err) {
-          console.error('Failed to copy link:', err);
           showToastMessage("Failed to copy link");
         }
       }
@@ -307,30 +307,45 @@ const ShareModal = ({ isOpen, onClose, storyUrl, storyTitle }) => {
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div 
         ref={modalRef}
-        className="bg-background rounded-lg p-6 w-full max-w-md transform transition-all duration-200 ease-out scale-100 hover:scale-[1.02]"
+        className="bg-background rounded-lg p-6 w-full max-w-md"
       >
-        <h2 className="text-xl font-bold mb-4">Share Story</h2>
+        <h2 className="text-xl font-bold mb-4">Share Reed</h2>
         <div className="grid grid-cols-2 gap-4">
-          {shareOptions.map((option) => (
-            <button
-              key={option.name}
-              onClick={option.onClick}
-              className="flex flex-col items-center justify-center p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-all duration-200 ease-out transform hover:scale-105 active:scale-95"
-            >
-              {option.icon}
-              <span className="mt-2 text-sm">{option.name}</span>
-            </button>
-          ))}
+          {shareOptions.map((option) => {
+            if (option.component) {
+              const ShareButton = option.component;
+              const ShareIcon = option.icon;
+              return (
+                <ShareButton
+                  key={option.name}
+                  {...option.props}
+                  className="flex flex-col items-center justify-center p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-all duration-200 ease-out transform hover:scale-105 active:scale-95"
+                >
+                  <ShareIcon size={32} round />
+                  <span className="mt-2 text-sm">{option.name}</span>
+                </ShareButton>
+              );
+            } else {
+              return (
+                <button
+                  key={option.name}
+                  onClick={option.onClick}
+                  className="flex flex-col items-center justify-center p-4 rounded-lg hover:border-primary hover:bg-primary/5 transition-all duration-200 ease-out transform hover:scale-105 active:scale-95"
+                >
+                  <option.icon className="w-8 h-8" />
+                  <span className="mt-2 text-sm">{option.name}</span>
+                </button>
+              );
+            }
+          })}
         </div>
         <button
           onClick={onClose}
-          className="mt-6 w-full py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors transform hover:scale-[1.02] active:scale-[0.98]"
+          className="mt-6 w-full py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors"
         >
           Close
         </button>
       </div>
-
-      {/* Toast Notification */}
       {showToast && (
         <div className="fixed bottom-4 right-4 rounded-lg bg-primary p-4 text-white shadow-lg animation-fade-in">
           {toastMessage}
