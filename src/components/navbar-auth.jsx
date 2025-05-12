@@ -9,12 +9,13 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useTheme } from "./theme-provider";
 import { useAuth } from "@/contexts/AuthContext";
 import { Moon, Sun, Menu, ChevronDown, User, Settings, LogOut } from "lucide-react";
 import AvatarDisplay from "./avatar-display";
-
+import reedLogo from "../assets/reed-logo.png";
 /**
  * NavbarAuth component
  * 
@@ -99,6 +100,13 @@ export default function NavbarAuth({ toggleSidebar }) {
           </button>
           
           <Link href="/dashboard" className="flex items-center space-x-2" onClick={handleNavigation}>
+            <Image
+                src={reedLogo}
+                alt="Reed Logo"
+                width={32}
+                height={32}
+                className="h-8 w-auto"
+              />
             <span className="text-xl font-bold gradient-text">Reed</span>
           </Link>
         </div>

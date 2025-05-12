@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Moon, Sun, Menu, X } from "lucide-react";
 import SignInModal from "./sign-in-modal";
 import { useRouter } from "next/navigation";
+import reedLogo from "../assets/reed-logo.png";
 
 export default function Navbar() {
   const { theme, setTheme } = useTheme();
@@ -55,6 +56,13 @@ export default function Navbar() {
         <div className="container mx-auto flex h-16 max-w-screen-xl items-center justify-between px-4 md:px-6">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
+            <Image
+              src={reedLogo}
+              alt="Reed Logo"
+              width={32}
+              height={32}
+              className="h-8 w-auto"
+            />
             <span className="text-xl font-bold gradient-text">Reed</span>
           </Link>
 
