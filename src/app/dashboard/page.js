@@ -222,7 +222,7 @@ export default function Dashboard() {
               placeholder="Search reeds"
               value={searchQuery}
               onChange={handleSearch}
-              className="w-full rounded-lg border border-input bg-background pl-10 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground placeholder:text-xs md:placeholder:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="search-reed-input w-full rounded-lg border border-input bg-background pl-10 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground placeholder:text-xs md:placeholder:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             />
           </div>
           
@@ -301,7 +301,7 @@ export default function Dashboard() {
             {filteredReeds.map((reed) => (
               <div 
                 key={reed.id} 
-                className="rounded-lg border border-border overflow-hidden hover:shadow-md transition-shadow cursor-pointer group"
+                className="reed-card rounded-lg border border-border overflow-hidden hover:shadow-md transition-shadow cursor-pointer group"
                 onClick={() => handleViewReed(reed.id)}
               >
                 <div className="relative h-48 bg-muted">
@@ -374,7 +374,7 @@ export default function Dashboard() {
             {filteredReeds.map((reed) => (
               <div 
                 key={reed.id} 
-                className="rounded-lg border border-border overflow-hidden hover:shadow-md transition-shadow cursor-pointer group"
+                className="reed-card rounded-lg border border-border overflow-hidden hover:shadow-md transition-shadow cursor-pointer group"
                 onClick={() => handleViewReed(reed.id)}
               >
                 <div className="flex flex-col md:flex-row">

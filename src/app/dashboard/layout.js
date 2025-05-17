@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X, Home, LayoutDashboard, User, LogOut, Plus, Trophy, MessageSquare } from "lucide-react";
+import { Menu, X, Home, LayoutDashboard, User, LogOut, Plus, Trophy, MessageSquare, HelpCircle } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/components/auth-context";
 import AvatarSelectionModal from "@/components/avatar-selection-modal";
 import Navbar from "@/components/navbar-auth";
 import { wakeUpBackend } from '@/lib/api-service';
 import { withAuth } from '@/components/withAuth';
+import { TourProvider } from '@/contexts/TourContext';
+import AppTour, { AppTourButton } from '@/components/app-tour';
 
 function DashboardLayout({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -95,167 +97,165 @@ function DashboardLayout({ children }) {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Navbar toggleSidebar={toggleSidebar} />
-      
-      <div className="flex flex-1">
-        {/* Sidebar for desktop */}
-        <aside className={`fixed inset-y-0 left-0 z-20 mt-16 w-64 flex-col border-r border-border bg-background transition-all duration-300 ease-in-out md:flex ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-          <div className="flex flex-1 flex-col p-4">
-            {/* Create Button */}
-            <Link
-              href="/dashboard/create"
-              className="mb-6 flex items-center justify-center rounded-lg bg-gradient-to-r from-blue-500 to-teal-500 px-4 py-3 text-sm font-medium text-white shadow-md hover:opacity-90 transition-colors"
-              onClick={handleCreateClick}
-            >
-              <Plus className="mr-2 h-5 w-5" />
-              CREATE
-            </Link>
-            
-            {/* Menu Items */}
-            <nav className="flex-1 space-y-2">
-              <Link
-                href="/"
-                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
-                onClick={handleNavigation}
-              >
-                <Home className="mr-2 h-5 w-5" />
-                Home
-              </Link>
-              <Link
-                href="/dashboard"
-                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
-                onClick={handleNavigation}
-              >
-                <LayoutDashboard className="mr-2 h-5 w-5" />
-                Dashboard
-              </Link>
-              <Link
-                href="/dashboard/leaderboard"
-                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard/leaderboard') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
-                onClick={handleNavigation}
-              >
-                <Trophy className="mr-2 h-5 w-5" />
-                Leaderboard
-              </Link>
-              <Link
-                href="/dashboard/profile"
-                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard/profile') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
-                onClick={handleNavigation}
-              >
-                <User className="mr-2 h-5 w-5" />
-                Profile
-              </Link>
-              <Link
-                href="/dashboard/feedback"
-                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard/feedback') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
-                onClick={handleNavigation}
-              >
-                <MessageSquare className="mr-2 h-5 w-5" />
-                Feedback
-              </Link>
-              {/* <button
-                onClick={logOut}
-                className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-              >
-                <LogOut className="mr-2 h-5 w-5" />
-                Logout
-              </button> */}
-            </nav>
+    <TourProvider>
+      <AppTour>
+        <div className="flex min-h-screen flex-col">
+          <Navbar toggleSidebar={toggleSidebar} />
+          
+          <div className="flex flex-1">
+            {/* Sidebar for desktop */}
+            <aside className={`fixed inset-y-0 left-0 z-20 mt-16 w-64 flex-col border-r border-border bg-background transition-all duration-300 ease-in-out md:flex ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+              <div className="flex flex-1 flex-col p-4">
+                {/* Create Button */}
+                <Link
+                  href="/dashboard/create"
+                  className="mb-6 flex items-center justify-center rounded-lg bg-gradient-to-r from-blue-500 to-teal-500 px-4 py-3 text-sm font-medium text-white shadow-md hover:opacity-90 transition-colors create-button"
+                  onClick={handleCreateClick}
+                >
+                  <Plus className="mr-2 h-5 w-5" />
+                  CREATE
+                </Link>
+                
+                {/* Menu Items */}
+                <nav className="flex-1 space-y-2">
+                  <Link
+                    href="/"
+                    className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors home-link ${isActive('/') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
+                    onClick={handleNavigation}
+                  >
+                    <Home className="mr-2 h-5 w-5" />
+                    Home
+                  </Link>
+                  <Link
+                    href="/dashboard"
+                    className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors dashboard-link ${isActive('/dashboard') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
+                    onClick={handleNavigation}
+                  >
+                    <LayoutDashboard className="mr-2 h-5 w-5" />
+                    Dashboard
+                  </Link>
+                  <Link
+                    href="/dashboard/leaderboard"
+                    className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors leaderboard-link ${isActive('/dashboard/leaderboard') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
+                    onClick={handleNavigation}
+                  >
+                    <Trophy className="mr-2 h-5 w-5" />
+                    Leaderboard
+                  </Link>
+                  <Link
+                    href="/dashboard/profile"
+                    className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors profile-link ${isActive('/dashboard/profile') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
+                    onClick={handleNavigation}
+                  >
+                    <User className="mr-2 h-5 w-5" />
+                    Profile
+                  </Link>
+                  <Link
+                    href="/dashboard/feedback"
+                    className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors feedback-link ${isActive('/dashboard/feedback') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
+                    onClick={handleNavigation}
+                  >
+                    <MessageSquare className="mr-2 h-5 w-5" />
+                    Feedback
+                  </Link>
+                  {/* App Tour button */}
+                  <div className="app-tour-button">
+                    <AppTourButton className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors" />
+                  </div>
+                </nav>
+              </div>
+            </aside>
+
+            {/* Mobile sidebar overlay */}
+            {isSidebarOpen && (
+              <div 
+                className="fixed inset-0 z-10 bg-background/80 backdrop-blur-sm md:hidden" 
+                onClick={() => toggleSidebar(false)}
+              />
+            )}
+
+            {/* Mobile sidebar */}
+            <aside className={`fixed inset-y-0 left-0 z-20 mt-16 w-64 flex-col border-r border-border bg-background transition-all duration-300 ease-in-out md:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+              <div className="flex flex-1 flex-col p-4">
+                {/* Create Button */}
+                <Link
+                  href="/dashboard/create"
+                  className="mb-6 flex items-center justify-center rounded-lg bg-gradient-to-r from-blue-500 to-teal-500 px-4 py-3 text-sm font-medium text-white shadow-md hover:opacity-90 transition-colors create-button"
+                  onClick={handleCreateClick}
+                >
+                  <Plus className="mr-2 h-5 w-5" />
+                  CREATE
+                </Link>
+                
+                {/* Menu Items */}
+                <nav className="flex-1 space-y-2">
+                  <Link
+                    href="/"
+                    className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors home-link ${isActive('/') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
+                    onClick={handleNavigation}
+                  >
+                    <Home className="mr-2 h-5 w-5" />
+                    Home
+                  </Link>
+                  <Link
+                    href="/dashboard"
+                    className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors dashboard-link ${isActive('/dashboard') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
+                    onClick={handleNavigation}
+                  >
+                    <LayoutDashboard className="mr-2 h-5 w-5" />
+                    Dashboard
+                  </Link>
+                  <Link
+                    href="/dashboard/leaderboard"
+                    className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors leaderboard-link ${isActive('/dashboard/leaderboard') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
+                    onClick={handleNavigation}
+                  >
+                    <Trophy className="mr-2 h-5 w-5" />
+                    Leaderboard
+                  </Link>
+                  <Link
+                    href="/dashboard/profile"
+                    className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors profile-link ${isActive('/dashboard/profile') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
+                    onClick={handleNavigation}
+                  >
+                    <User className="mr-2 h-5 w-5" />
+                    Profile
+                  </Link>
+                  <Link
+                    href="/dashboard/feedback"
+                    className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors feedback-link ${isActive('/dashboard/feedback') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
+                    onClick={handleNavigation}
+                  >
+                    <MessageSquare className="mr-2 h-5 w-5" />
+                    Feedback
+                  </Link>
+                  
+                  {/* App Tour button for mobile */}
+                  <div className="app-tour-button">
+                    <AppTourButton className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors" />
+                  </div>
+                </nav>
+              </div>
+            </aside>
+
+            {/* Main content */}
+            <main className="flex-1 p-4 md:ml-64 pt-20 flex justify-center">
+              <div className="w-full max-w-6xl">{children}</div>
+            </main>
           </div>
-        </aside>
 
-        {/* Mobile sidebar overlay */}
-        {isSidebarOpen && (
-          <div 
-            className="fixed inset-0 z-10 bg-background/80 backdrop-blur-sm md:hidden" 
-            onClick={() => toggleSidebar(false)}
-          />
-        )}
-
-        {/* Mobile sidebar */}
-        <aside className={`fixed inset-y-0 left-0 z-20 mt-16 w-64 flex-col border-r border-border bg-background transition-all duration-300 ease-in-out md:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-          <div className="flex flex-1 flex-col p-4">
-            {/* Create Button */}
-            <Link
-              href="/dashboard/create"
-              className="mb-6 flex items-center justify-center rounded-lg bg-gradient-to-r from-blue-500 to-teal-500 px-4 py-3 text-sm font-medium text-white shadow-md hover:opacity-90 transition-colors"
-              onClick={handleCreateClick}
-            >
-              <Plus className="mr-2 h-5 w-5" />
-              CREATE
-            </Link>
-            
-            {/* Menu Items */}
-            <nav className="flex-1 space-y-2">
-              <Link
-                href="/"
-                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
-                onClick={handleNavigation}
-              >
-                <Home className="mr-2 h-5 w-5" />
-                Home
-              </Link>
-              <Link
-                href="/dashboard"
-                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
-                onClick={handleNavigation}
-              >
-                <LayoutDashboard className="mr-2 h-5 w-5" />
-                Dashboard
-              </Link>
-              <Link
-                href="/dashboard/leaderboard"
-                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard/leaderboard') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
-                onClick={handleNavigation}
-              >
-                <Trophy className="mr-2 h-5 w-5" />
-                Leaderboard
-              </Link>
-              <Link
-                href="/dashboard/profile"
-                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard/profile') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
-                onClick={handleNavigation}
-              >
-                <User className="mr-2 h-5 w-5" />
-                Profile
-              </Link>
-              <Link
-                href="/dashboard/feedback"
-                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive('/dashboard/feedback') ? 'bg-primary/10 text-primary' : 'hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
-                onClick={handleNavigation}
-              >
-                <MessageSquare className="mr-2 h-5 w-5" />
-                Feedback
-              </Link>
-              
-              {/* <button
-                onClick={logOut}
-                className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-              >
-                <LogOut className="mr-2 h-5 w-5" />
-                Logout
-              </button> */}
-            </nav>
-          </div>
-        </aside>
-
-        {/* Main content */}
-        <main className="flex-1 p-4 md:ml-64 pt-20 flex justify-center">
-          <div className="w-full max-w-6xl">{children}</div>
-        </main>
-      </div>
-
-      {/* Avatar Selection Modal for First-time Users */}
-      {showAvatarModal && user && (
-        <AvatarSelectionModal
-          isOpen={showAvatarModal}
-          onClose={handleAvatarModalClose}
-          currentAvatarId={user.avatar_id}
-          isFirstTime={true}
-        />
-      )}
-    </div>
+          {/* Avatar Selection Modal for First-time Users */}
+          {showAvatarModal && user && (
+            <AvatarSelectionModal
+              isOpen={showAvatarModal}
+              onClose={handleAvatarModalClose}
+              currentAvatarId={user.avatar_id}
+              isFirstTime={true}
+            />
+          )}
+        </div>
+      </AppTour>
+    </TourProvider>
   );
 }
 
