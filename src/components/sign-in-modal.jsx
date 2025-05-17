@@ -15,9 +15,15 @@ export default function SignInModal({ isOpen, onClose }) {
   const handleGoogleSignIn = async () => {
     try {
       setIsSigningIn(true);
-      const user = await signInWithGoogle();
-      showToast(`Welcome to Reed!`, "success");
-      onClose();
+      const result = await signInWithGoogle();
+      if (result.success) {
+        showToast(`Welcome to Reed!`, "success");
+        onClose();
+        // Explicitly navigate to dashboard
+        window.location.href = '/dashboard';
+      } else {
+        showToast("Failed to sign in. Please try again.", "error");
+      }
     } catch (error) {
       console.error("Sign-in error:", error);
       showToast("An error occurred during sign-in.", "error");
